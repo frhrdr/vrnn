@@ -72,8 +72,8 @@ def run_training():
 
             duration = time.time() - start_time
 
-            if step % 100 == 0:
-                print(loss_value.shape)
+            if step % 10 == 0:
+                #print(loss_value[:15])
                 l = np.sum(loss_value)
                 print('Step %d: loss = %.2f (%.3f sec)' % (step, l, duration))
                 # Update the events file.

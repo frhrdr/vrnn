@@ -30,7 +30,7 @@ def inference(images, batch_size, encoder_nn=None, decoder_nn=None, n_latentvars
     # make encoder if not provided
     if encoder_nn is None:
         with tf.name_scope('encoder'):
-            encoder_nn = simple_mlp(images, 28**2, 128, 2*n_latentvars)
+            encoder_nn = simple_mlp(images, 28**2, 28, 2*n_latentvars)
 
     # create mean and covariance
 
@@ -46,7 +46,7 @@ def inference(images, batch_size, encoder_nn=None, decoder_nn=None, n_latentvars
     # make decoder if not provided
     if decoder_nn is None:
         with tf.name_scope('decoder'):
-            decoder_nn = simple_mlp(z_vec, n_latentvars, 128, 28**2)
+            decoder_nn = simple_mlp(z_vec, n_latentvars, 28, 28**2)
 
     return decoder_nn, mean_vec, cov_vec
 
@@ -65,11 +65,10 @@ def loss(vae, mean_vec, cov_vec, target, n_latentvars):
                     tf.add(k, tf.log(cov_determinant + tf.to_float(0.0000001), name='l6'), name='l7'), name='l8'),
                     tf.to_float(2), name='KL-divergence')
 
-    print("kldiv: ", kl_div.get_shape())
     # reconstruction error
     diff = target - vae
-    print("diff: ", diff.get_shape())
-    rec_err = tf.reduce_prod(tf.mul(diff, diff, name='l9'), reduction_indices=[1], name='rec_err')
+
+    rec_err = tf.reduce_sum(tf.mul(diff, diff, name='l9'), reduction_indices=[1], name='rec_err')
 
     # so the error happens somewhere in the computation of the rec_err gradient.
     # both the neg_lower_bound (duh) and the KL-divergence gradients come before (not l8 though) and seem fine
@@ -77,7 +76,7 @@ def loss(vae, mean_vec, cov_vec, target, n_latentvars):
     # negative variational lower bound
     # (optimizer can only minimize - same as maximizing positive lower bound
     bound = tf.add(kl_div, rec_err, name='neg_lower_bound')
-    print("bound: ", bound.get_shape())
+
     return bound
 
 
