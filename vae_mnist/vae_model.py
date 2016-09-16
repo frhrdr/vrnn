@@ -30,7 +30,7 @@ def inference(images, batch_size, encoder_nn=None, decoder_nn=None, n_latentvars
     # make encoder if not provided
     if encoder_nn is None:
         with tf.name_scope('encoder'):
-            encoder_nn = simple_mlp(images, 28**2, 28, 2*n_latentvars)
+            encoder_nn = simple_mlp(images, 28**2, 128, 2*n_latentvars)
 
     # create mean and covariance
 
@@ -46,7 +46,7 @@ def inference(images, batch_size, encoder_nn=None, decoder_nn=None, n_latentvars
     # make decoder if not provided
     if decoder_nn is None:
         with tf.name_scope('decoder'):
-            decoder_nn = simple_mlp(z_vec, n_latentvars, 28, 28**2)
+            decoder_nn = simple_mlp(z_vec, n_latentvars, 128, 28**2)
 
     return decoder_nn, mean_vec, cov_vec
 
@@ -77,6 +77,8 @@ def loss(vae, mean_vec, cov_vec, target, n_latentvars):
     # (optimizer can only minimize - same as maximizing positive lower bound
     bound = tf.add(kl_div, rec_err, name='neg_lower_bound')
 
+    # average over samples
+    bound = tf.reduce_mean(bound, name='avg_neg_lower_bound')
     return bound
 
 
@@ -88,3 +90,8 @@ def training(bound, learning_rate):
 
     train_op = optimizer.minimize(bound, global_step=global_step)
     return train_op
+
+
+def generation(graph):
+    pass
+    # return decoder only

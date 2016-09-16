@@ -1,6 +1,5 @@
 from __future__ import print_function
 import tensorflow as tf
-import numpy as np
 import time
 import os.path
 import vae_model
@@ -21,6 +20,7 @@ from tensorflow.examples.tutorials.mnist import input_data
 max_steps = 505
 train_dir = 'data'
 batch_size = 100
+n_latent = 30
 # data_sets = input_data.read_data_sets('data', False)
 # print(data_sets)
 # print(data_sets.train.next_batch(5))
@@ -48,8 +48,8 @@ def run_training():
     with tf.Graph().as_default():
         images_placeholder, target_placeholder = placeholder_inputs(batch_size)
 
-        vae, mean_vec, cov_vec = vae_model.inference(images_placeholder, batch_size, n_latentvars=10)
-        bound = vae_model.loss(vae, mean_vec, cov_vec, target_placeholder, n_latentvars=10)
+        vae, mean_vec, cov_vec = vae_model.inference(images_placeholder, batch_size, n_latentvars=n_latent)
+        bound = vae_model.loss(vae, mean_vec, cov_vec, target_placeholder, n_latentvars=n_latent)
         train_op = vae_model.training(bound, learning_rate=0.1)
 
         summary_op = tf.merge_all_summaries()
@@ -72,39 +72,18 @@ def run_training():
 
             duration = time.time() - start_time
 
-            if step % 10 == 0:
-                #print(loss_value[:15])
-                l = np.sum(loss_value)
-                print('Step %d: loss = %.2f (%.3f sec)' % (step, l, duration))
-                # Update the events file.
-                #summary_str = sess.run(summary_op, feed_dict=feed_dict)
-                #summary_writer.add_summary(summary_str, step)
-                #summary_writer.flush()
+            if step % 100 == 0:
 
-            # maybe later
-            # if (step + 1) % 1000 == 0 or (step + 1) == max_steps:
-            #     checkpoint_file = os.path.join(train_dir, 'checkpoint')
-            #     saver.save(sess, checkpoint_file, global_step=step)
-            #     # Evaluate against the training set.
-            #     print('Training Data Eval:')
-            #     do_eval(sess,
-            #             eval_correct,
-            #             images_placeholder,
-            #             target_placeholder,
-            #             data_sets.train)
-            #     # Evaluate against the validation set.
-            #     print('Validation Data Eval:')
-            #     do_eval(sess,
-            #             eval_correct,
-            #             images_placeholder,
-            #             target_placeholder,
-            #             data_sets.validation)
-            #     # Evaluate against the test set.
-            #     print('Test Data Eval:')
-            #     do_eval(sess,
-            #             eval_correct,
-            #             images_placeholder,
-            #             target_placeholder,
-            #             data_sets.test)
+                print('Step %d: loss = %.2f (%.3f sec)' % (step, loss_value, duration))
+                # Update the events file.
+                summary_str = sess.run(summary_op, feed_dict=feed_dict)
+                summary_writer.add_summary(summary_str, step)
+                summary_writer.flush()
+
+            if (step + 1) % 1000 == 0 or (step + 1) == max_steps:
+                checkpoint_file = os.path.join(train_dir, 'checkpoint')
+                saver.save(sess, checkpoint_file, global_step=step)
+
+            # maybe later add validation and test eval
 
 run_training()
