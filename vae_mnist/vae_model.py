@@ -2,52 +2,25 @@ import tensorflow as tf
 import math
 
 
-def simple_mlp(input_tensor, n_in, n_hid, n_out):
-    # hidden layer
-    with tf.name_scope('hidden'):
-        weights = tf.Variable(
-            tf.truncated_normal([n_in, n_hid],
-                                stddev=1.0 / math.sqrt(float(n_in))),
-            name='weights')
-        biases = tf.Variable(tf.zeros([n_hid]),
-                             name='biases')
-        hidden1 = tf.nn.relu(tf.matmul(input_tensor, weights) + biases)
-    # output layer
-    with tf.name_scope('output'):
-        weights = tf.Variable(
-            tf.truncated_normal([n_hid, n_out],
-                                stddev=1.0 / math.sqrt(float(n_hid))),
-            name='weights')
-        biases = tf.Variable(tf.zeros([n_out]),
-                             name='biases')
-        out_tensor = tf.nn.relu(tf.matmul(hidden1, weights) + biases)
+def inference(images, batch_size, encoder_fun, decoder_fun, n_latentvars=10, img_dims=28**2):
 
-    return out_tensor
+    # make encoder
+    encoder_nn = encoder_fun(images, img_dims, n_latentvars)
 
-
-def inference(images, batch_size, encoder_nn=None, decoder_nn=None, n_latentvars=10):
-
-    # make encoder if not provided
-    if encoder_nn is None:
-        with tf.name_scope('encoder'):
-            encoder_nn = simple_mlp(images, 28**2, 128, 2*n_latentvars)
-
-    # create mean and covariance
-
-    # batch_size = encoder_nn.get_shape() (How to do this properly??)
+    # create mean and covariance (vec of cov is easier to use)
     mean_vec = tf.slice(encoder_nn, [0, 0], [batch_size, n_latentvars], name='mu')
     cov_vec = tf.slice(encoder_nn, [0, n_latentvars], [batch_size, n_latentvars], name='Sigma')
-    # cov_mat = tf.batch_matrix_diag(cov_vec)
 
     # draw samples
     noise_vec = tf.random_normal([n_latentvars], mean=0.0, stddev=1.0, dtype=tf.float32, seed=123, name='z_noise')
     z_vec = mean_vec + tf.mul(cov_vec, noise_vec)
 
-    # make decoder if not provided
-    if decoder_nn is None:
-        with tf.name_scope('decoder'):
-            decoder_nn = simple_mlp(z_vec, n_latentvars, 128, 28**2)
-
+    # make decoder
+    # if decoder_fun is None:
+    #     with tf.name_scope('decoder'):
+    #         decoder_nn = simple_mlp(z_vec, n_latentvars, 128, img_dims)
+    # else:
+    decoder_nn = decoder_fun(z_vec, n_latentvars, img_dims)
     return decoder_nn, mean_vec, cov_vec
 
 
@@ -92,6 +65,7 @@ def training(bound, learning_rate):
     return train_op
 
 
-def generation(graph):
-    pass
-    # return decoder only
+def generation(decoder_fun, n_latentvars, img_dims):
+    z_vec = tf.random_normal([n_latentvars])
+    decoder_nn = decoder_fun(z_vec, n_latentvars, img_dims)
+    return decoder_nn

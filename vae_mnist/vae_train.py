@@ -3,6 +3,7 @@ import tensorflow as tf
 import time
 import os.path
 import vae_model
+import utilities as util
 from tensorflow.examples.tutorials.mnist import input_data
 
 # flags = tf.app.flags
@@ -21,15 +22,17 @@ max_steps = 505
 train_dir = 'data'
 batch_size = 100
 n_latent = 30
+IMG_DIMS = 28**2
 # data_sets = input_data.read_data_sets('data', False)
 # print(data_sets)
 # print(data_sets.train.next_batch(5))
 
 
 def placeholder_inputs(batch_size):
-    images_placeholder = tf.placeholder(tf.float32, shape=(batch_size, 28**2))
-    target_placeholder = tf.placeholder(tf.float32, shape=(batch_size, 28**2))
+    images_placeholder = tf.placeholder(tf.float32, shape=(batch_size, IMG_DIMS))
+    target_placeholder = tf.placeholder(tf.float32, shape=(batch_size, IMG_DIMS))
     return images_placeholder, target_placeholder
+
 
 
 def fill_feed_dict(data_set, images_pl, target_pl):
@@ -42,13 +45,19 @@ def fill_feed_dict(data_set, images_pl, target_pl):
     return feed_dict
 
 
-def run_training():
+def run_training(encoder_fun=None, decoder_fun=None):
     data_sets = input_data.read_data_sets(train_dir)
 
     with tf.Graph().as_default():
         images_placeholder, target_placeholder = placeholder_inputs(batch_size)
 
-        vae, mean_vec, cov_vec = vae_model.inference(images_placeholder, batch_size, n_latentvars=n_latent)
+        if encoder_fun is None:
+            encoder_fun = lambda t_in, in_dims, n_out: util.simple_mlp(t_in, in_dims, 128, n_out, 'encoder')
+        if decoder_fun is None:
+            decoder_fun = lambda t_in, in_dims, n_out: util.simple_mlp(t_in, in_dims, 128, n_out, 'decoder')
+
+        vae, mean_vec, cov_vec = vae_model.inference(images_placeholder, batch_size,
+                                                     encoder_fun, decoder_fun, n_latentvars=n_latent, img_dims=IMG_DIMS)
         bound = vae_model.loss(vae, mean_vec, cov_vec, target_placeholder, n_latentvars=n_latent)
         train_op = vae_model.training(bound, learning_rate=0.1)
 
@@ -85,5 +94,18 @@ def run_training():
                 saver.save(sess, checkpoint_file, global_step=step)
 
             # maybe later add validation and test eval
+
+
+def run_generation(ckpt_file, decoder_fun, n_latentvars, img_dims):
+
+    # rebuild decoder with saved weights
+    with tf.Graph.as_default():
+        generator = vae_model.generation(decoder_fun, n_latentvars, img_dims)
+
+        with tf.Session() as sess:
+            saver = tf.train.Saver()
+            saver.restore(sess, ckpt_file)
+
+            # sample z values and plot them somehow...
 
 run_training()
