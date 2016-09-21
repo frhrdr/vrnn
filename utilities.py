@@ -28,10 +28,10 @@ def simple_mlp(input_tensor, n_in, n_hid, n_out, scope):
 
 
 def plot_img_mats(mat):
-    # plot l*m*n mats as l m by n greyscale images
+    # plot l*m*n mats as l m by n gray-scale images
     n = mat.shape[0]
     cols = int(np.ceil(np.sqrt(n)))
-    rows = n / cols + 1
+    rows = int(np.ceil(n // cols))
 
     plt.style.use('grayscale')
     fig, ax_list = plt.subplots(ncols=cols, nrows=rows)

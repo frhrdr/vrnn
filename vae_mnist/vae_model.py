@@ -2,10 +2,10 @@ import tensorflow as tf
 import math
 
 
-def inference(images, batch_size, encoder_fun, decoder_fun, n_latentvars=10, img_dims=28**2):
+def inference(images, batch_size, encoder_fun, decoder_fun, n_latentvars, img_dims):
 
     # make encoder
-    encoder_nn = encoder_fun(images, img_dims, n_latentvars)
+    encoder_nn = encoder_fun(images, img_dims, 2*n_latentvars)
 
     # create mean and covariance (vec of cov is easier to use)
     mean_vec = tf.slice(encoder_nn, [0, 0], [batch_size, n_latentvars], name='mu')
@@ -66,6 +66,6 @@ def training(bound, learning_rate):
 
 
 def generation(decoder_fun, n_latentvars, img_dims):
-    z_vec = tf.random_normal([n_latentvars])
+    z_vec = tf.random_normal([100, n_latentvars])
     decoder_nn = decoder_fun(z_vec, n_latentvars, img_dims)
     return decoder_nn
