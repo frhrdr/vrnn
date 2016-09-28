@@ -54,35 +54,36 @@ def loss(target, phi_dec, mean_0, cov_0, mean_x, cov_x, param_dict):
     return tf.add(rec_err, kl_div, name='loss')
 
 
-def loop(x_list, x_pl, hid_pl, err_acc, count, param_dict, fun_dict):
+def loop(x_list, hid_pl, err_acc, count, param_dict, fun_dict):
     # the dicts must be assigned before looping over a parameter subset (lambda) of this function
+
+    # set x_pl to first elem of list, remove first from list
+    x_pl = x_list[0]
+    x_list = x_list[1:]
 
     # build inference model
     phi_dec, mean_0, cov_0, mean_x, cov_x, f_theta = inference(x_pl, hid_pl, param_dict, fun_dict)
     # build loss
     step_error = loss(x_pl, phi_dec, mean_0, cov_0, mean_x, cov_x, param_dict)
 
-    # set x_pl to first elem of list, remove first from list
-    x_pl = x_list[0]
-    x_list = x_list[1:]
     # set hid_pl to result of f_theta
     hid_pl = f_theta
     # set err_acc to += error from this time-step
     err_acc = tf.add(err_acc, step_error)
     # set count += 1
     count = tf.add(count, 1)
-    return x_list, x_pl, hid_pl, err_acc, count
+    return x_list, hid_pl, err_acc, count
 
 
 def get_loop_fun(param_dict, fun_dict):
     # function wrapper to assign the dicts. return value can be looped with tf.while_loop
-    def loop_fun(x_list, x_pl, hid_pl, err_acc, count):
-        return loop(x_list, x_pl, hid_pl, err_acc, count, param_dict, fun_dict)
+    def loop_fun(x_list, hid_pl, err_acc, count):
+        return loop(x_list, hid_pl, err_acc, count, param_dict, fun_dict)
     return loop_fun
 
 
 def get_stop_fun(num_iter):
-    def stop_fun(a, b, c, d, count):
+    def stop_fun(a, b, c, count):
         return tf.less(count, num_iter)
     return stop_fun
 
