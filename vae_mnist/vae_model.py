@@ -43,9 +43,6 @@ def loss(vae, mean_vec, cov_vec, target, n_latentvars):
 
     rec_err = tf.reduce_sum(tf.mul(diff, diff, name='l9'), reduction_indices=[1], name='rec_err')
 
-    # so the error happens somewhere in the computation of the rec_err gradient.
-    # both the neg_lower_bound (duh) and the KL-divergence gradients come before (not l8 though) and seem fine
-
     # negative variational lower bound
     # (optimizer can only minimize - same as maximizing positive lower bound
     bound = tf.add(kl_div, rec_err, name='neg_lower_bound')

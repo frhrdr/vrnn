@@ -1,6 +1,17 @@
 import numpy as np
 
 
+def save_series(function, number, length, file_path):
+    series = np.ndarray((number, length))
+    for idx in range(number):
+        series[idx, :] = function(length)
+    np.save(file_path, series)
+
+
+def load_series(file_path):
+    return np.load(file_path)
+
+
 # integers 0 - 127
 # a_n :=
 # 50%:  a_(n-1) - 9 mod 128
@@ -25,6 +36,7 @@ def series1_gen(length):
 
 def series1_check(series):
     # counters: 0 - init, 1 - rule 1, 2 - rule 2, 3 - rule 3, 4 - error
+    # biased towards rules 1 and 2, when resolving ambiguities
     score = np.zeros(5)
     for idx in range(4):
         if series[idx] == 0:
@@ -43,5 +55,7 @@ def series1_check(series):
 
     return score / np.sum(score)
 
-s = series1_gen(1000)
-print(series1_check(s))
+path = 'data/series1_1000_by_300.npy'
+save_series(series1_gen, 1000, 300, path)
+# s = load_series(path)
+# print(s)

@@ -4,6 +4,7 @@ import math
 
 def inference(in_pl, hid_pl, param_dict, fun_dict):
 
+    # rename for brevity
     pd = param_dict
     fd = fun_dict
 
@@ -25,13 +26,74 @@ def inference(in_pl, hid_pl, param_dict, fun_dict):
 
     f_theta = fd['f_theta'](hid_pl, phi_x, phi_z)
 
-
-def loss():
-    pass
+    return phi_dec, mean_0, cov_0, mean_x, cov_x, f_theta
 
 
-def train():
-    pass
+def loss(target, phi_dec, mean_0, cov_0, mean_x, cov_x, param_dict):
+    # make tensor for reconstruction err from target and phi_dec
+    diff = tf.sub(target, phi_dec, name='re1')
+    rec_err = tf.reduce_sum(tf.mul(diff, diff, name='re2'), reduction_indices=[1], name='rec_err')
+
+    # make tensor for KL divergence from means and covariance vectors
+    # following equation 6 from the VAE tutorial
+    k = tf.to_float(param_dict['n_latent'])
+    mean_diff = tf.sub(mean_0, mean_x, name='kl1')
+    cov_0_inv = tf.inv(cov_0)
+    cov_0_det = tf.reduce_prod(cov_0, reduction_indices=[1], name='kl2')
+    cov_x_det = tf.reduce_prod(cov_x, reduction_indices=[1], name='kl3')
+    trace_term = tf.reduce_sum(tf.mul(cov_0_inv, cov_x), reduction_indices=[1], name='kl4')
+    square_term = tf.reduce_sum(tf.mul(tf.mul(mean_diff, cov_0_inv, name='kl5'),
+                                       mean_diff, name='kl6'),
+                                reduction_indices=[1], name='kl7')
+    log_term = tf.log(tf.div(cov_0_det, cov_x_det, name='kl8'), name='kl9')
+
+    kl_div = tf.div(tf.sub(tf.add(trace_term, square_term, name='kl10'),
+                           tf.add(k, log_term, name='kl11'), name='kl12'),
+                    tf.to_float(2), name='kl_div')
+
+    return tf.add(rec_err, kl_div, name='loss')
+
+
+def loop(x_list, x_pl, hid_pl, err_acc, count, param_dict, fun_dict):
+    # the dicts must be assigned before looping over a parameter subset (lambda) of this function
+
+    # build inference model
+    phi_dec, mean_0, cov_0, mean_x, cov_x, f_theta = inference(x_pl, hid_pl, param_dict, fun_dict)
+    # build loss
+    step_error = loss(x_pl, phi_dec, mean_0, cov_0, mean_x, cov_x, param_dict)
+
+    # set x_pl to first elem of list, remove first from list
+    x_pl = x_list[0]
+    x_list = x_list[1:]
+    # set hid_pl to result of f_theta
+    hid_pl = f_theta
+    # set err_acc to += error from this time-step
+    err_acc = tf.add(err_acc, step_error)
+    # set count += 1
+    count = tf.add(count, 1)
+    return x_list, x_pl, hid_pl, err_acc, count
+
+
+def get_loop_fun(param_dict, fun_dict):
+    # function wrapper to assign the dicts. return value can be looped with tf.while_loop
+    def loop_fun(x_list, x_pl, hid_pl, err_acc, count):
+        return loop(x_list, x_pl, hid_pl, err_acc, count, param_dict, fun_dict)
+    return loop_fun
+
+
+def get_stop_fun(num_iter):
+    def stop_fun(a, b, c, d, count):
+        return tf.less(count, num_iter)
+    return stop_fun
+
+
+def train(err_acc, learning_rate):
+    tf.scalar_summary(err_acc.op.name, err_acc)
+    optimizer = tf.train.AdagradOptimizer(learning_rate=learning_rate)
+    global_step = tf.Variable(0, name='global_step', trainable=False)
+
+    train_op = optimizer.minimize(err_acc, global_step=global_step)
+    return train_op
 
 
 def generate():
