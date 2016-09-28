@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from collections import defaultdict
 
+
 class NetGen:
 
     def __init__(self):
@@ -40,7 +41,7 @@ class NetGen:
             self.fd[name] = f
 
     # concatenates several tensors into one input to existing nn of given name
-    def weave_inputs(self, name, in_dims):
+    def weave_inputs(self, name):
         f = self.fd[name]
 
         def g(*args):
@@ -57,34 +58,36 @@ class NetGen:
 
 def simple_mlp(input_tensor, n_in, n_hid, n_out, scope, var_list):
 
-    idx = running_idx()
-    make_vars = var_list is []
+    ridx = running_idx()
+    make_vars = var_list == []
 
     # hidden layer
     with tf.name_scope(scope):
         with tf.name_scope('hidden'):
             if make_vars:
-                var_list.add(tf.Variable(tf.truncated_normal([n_in, n_hid],
+                var_list.append(tf.Variable(tf.truncated_normal([n_in, n_hid],
                                          stddev=1.0 / math.sqrt(float(n_in))),
                                          name='weights'))
-            weights = var_list[idx.next()]
+            # print(make_vars)
+            # print(var_list)
+            weights = var_list[ridx.next()]
 
             if make_vars:
-                var_list.add(tf.Variable(tf.zeros([n_hid]), name='biases'))
-            biases = var_list[idx.next()]
+                var_list.append(tf.Variable(tf.zeros([n_hid]), name='biases'))
+            biases = var_list[ridx.next()]
 
             hidden1 = tf.nn.relu(tf.matmul(input_tensor, weights) + biases)
         # output layer
         with tf.name_scope('output'):
             if make_vars:
-                var_list.add(tf.Variable(tf.truncated_normal([n_hid, n_out],
+                var_list.append(tf.Variable(tf.truncated_normal([n_hid, n_out],
                                          stddev=1.0 / math.sqrt(float(n_in))),
                                          name='weights'))
-            weights = var_list[idx.next()]
+            weights = var_list[ridx.next()]
 
             if make_vars:
-                var_list.add(tf.Variable(tf.zeros([n_out]), name='biases'))
-            biases = var_list[idx.next()]
+                var_list.append(tf.Variable(tf.zeros([n_out]), name='biases'))
+            biases = var_list[ridx.next()]
 
             out_tensor = tf.nn.relu(tf.matmul(hidden1, weights) + biases)
 
@@ -93,7 +96,7 @@ def simple_mlp(input_tensor, n_in, n_hid, n_out, scope, var_list):
 
 def general_mlp(input_tensor, layers, name, var_list):
 
-    idx = running_idx()
+    ridx = running_idx()
     make_vars = var_list is []
 
     n_hidden_layers = len(layers) - 2
@@ -103,35 +106,36 @@ def general_mlp(input_tensor, layers, name, var_list):
         for idx in range(n_hidden_layers):
             with tf.name_scope('hidden' + str(idx + 1)):
                 if make_vars:
-                    var_list.add(tf.Variable(tf.truncated_normal([layers[idx], layers[idx+1]],
+                    var_list.append(tf.Variable(tf.truncated_normal([layers[idx], layers[idx+1]],
                                              stddev=1.0 / math.sqrt(float(layers[idx]))),
                                              name='weights'))
-                weights = var_list[idx.next()]
+                weights = var_list[ridx.next()]
 
                 if make_vars:
-                    var_list.add(tf.Variable(tf.zeros([layers[idx+1]]), name='biases'))
-                biases = var_list[idx.next()]
+                    var_list.append(tf.Variable(tf.zeros([layers[idx+1]]), name='biases'))
+                biases = var_list[ridx.next()]
 
                 last = tf.nn.relu(tf.matmul(last, weights) + biases)
 
         # make output layer
         with tf.name_scope('out'):
             if make_vars:
-                var_list.add(tf.Variable(tf.truncated_normal([layers[idx], layers[idx+1]],
-                                         stddev=1.0 / math.sqrt(float(layers[idx]))),
+                var_list.append(tf.Variable(tf.truncated_normal([layers[-2], layers[-1]],
+                                         stddev=1.0 / math.sqrt(float(layers[-2]))),
                                          name='weights'))
-            weights = var_list[idx.next()]
+            weights = var_list[ridx.next()]
 
             if make_vars:
-                var_list.add(tf.Variable(tf.zeros([layers[idx+1]]), name='biases'))
-            biases = var_list[idx.next()]
+                var_list.append(tf.Variable(tf.zeros([layers[-1]]), name='biases'))
+            biases = var_list[ridx.next()]
 
             out = tf.nn.relu(tf.matmul(last, weights) + biases)
     return out
 
 
 # TODO: find elegant-ish way of accessing lstm weights for re-use
-# def simple_lstm(input_tensor, layers, name, var_list):
+def simple_lstm(input_tensor, layers, name, var_list):
+    pass
 #
 #     n_hidden_layers = len(layers) - 1
 #     last = input_tensor
@@ -176,4 +180,3 @@ def plot_img_mats(mat):
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
     plt.show()
-

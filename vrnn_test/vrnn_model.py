@@ -1,5 +1,4 @@
 import tensorflow as tf
-import math
 
 
 def inference(in_pl, hid_pl, param_dict, fun_dict):
@@ -51,15 +50,20 @@ def loss(target, phi_dec, mean_0, cov_0, mean_x, cov_x, param_dict):
                            tf.add(k, log_term, name='kl11'), name='kl12'),
                     tf.to_float(2), name='kl_div')
 
-    return tf.add(rec_err, kl_div, name='loss')
+    # negative variational lower bound
+    # (optimizer can only minimize - same as maximizing positive lower bound
+    bound = tf.add(rec_err, kl_div, name='neg_lower_bound')
+    # average over samples
+    bound = tf.reduce_mean(bound, name='avg_neg_lower_bound')
+
+    return bound
 
 
 def loop(x_list, hid_pl, err_acc, count, param_dict, fun_dict):
     # the dicts must be assigned before looping over a parameter subset (lambda) of this function
 
-    # set x_pl to first elem of list, remove first from list
-    x_pl = x_list[0]
-    x_list = x_list[1:]
+    # set x_pl to elem of list indexed by count
+    x_pl = tf.squeeze(tf.slice(x_list, [count, 0, 0], [1, -1, -1]))
 
     # build inference model
     phi_dec, mean_0, cov_0, mean_x, cov_x, f_theta = inference(x_pl, hid_pl, param_dict, fun_dict)
