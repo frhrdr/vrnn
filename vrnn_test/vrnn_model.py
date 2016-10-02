@@ -61,21 +61,25 @@ def loss(target, phi_dec, mean_0, cov_0, mean_x, cov_x, param_dict):
 
 def loop(x_list, hid_pl, err_acc, count, param_dict, fun_dict):
     # the dicts must be assigned before looping over a parameter subset (lambda) of this function
-
+    print('in..')
     # set x_pl to elem of list indexed by count
-    x_pl = tf.squeeze(tf.slice(x_list, [count, 0, 0], [1, -1, -1]))
-
+    x_pl = tf.squeeze(tf.slice(x_list, [tf.to_int32(count), 0, 0], [1, -1, -1]))
+    print('..dexing')
+    print(x_pl)
     # build inference model
     phi_dec, mean_0, cov_0, mean_x, cov_x, f_theta = inference(x_pl, hid_pl, param_dict, fun_dict)
     # build loss
     step_error = loss(x_pl, phi_dec, mean_0, cov_0, mean_x, cov_x, param_dict)
 
+    print(tf.trainable_variables())
     # set hid_pl to result of f_theta
     hid_pl = f_theta
     # set err_acc to += error from this time-step
     err_acc = tf.add(err_acc, step_error)
     # set count += 1
+    print('counting')
     count = tf.add(count, 1)
+    print('exiting')
     return x_list, hid_pl, err_acc, count
 
 

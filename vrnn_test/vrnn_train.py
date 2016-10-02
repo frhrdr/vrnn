@@ -36,15 +36,16 @@ with tf.Graph().as_default():
     x_list = tf.placeholder(tf.float32, name='x_pl',
                             shape=(PARAM_DICT['seq_length'], PARAM_DICT['batch_size'], PARAM_DICT['data_dim']))
     hid_pl = tf.zeros([PARAM_DICT['batch_size'], PARAM_DICT['hid_state_size']], name='ht_init')
-    err_acc = tf.zeros(1, name='err_acc')
-    count = tf.to_int32(0, name='counter')
+    err_acc = tf.Variable(0, dtype=tf.float32, trainable=False, name='err_acc')
+    count = tf.Variable(0, dtype=tf.float32, trainable=False, name='counter')  # tf.to_int32(0, name='counter')
     loop_vars = [x_list, hid_pl, err_acc, count]
     # loop it
     loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
                              parallel_iterations=1,
                              swap_memory=False,
                              name='while_loop')
-    err_final = loop_res[3]
+    #loop_res = loop_fun(*loop_vars)
+    err_final = loop_res[2]
     # get the train_op
     train_op = model.train(err_final, PARAM_DICT['learning_rate'])
     # get a session
