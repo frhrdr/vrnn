@@ -15,6 +15,7 @@ class NetGen:
         return str(self.fd.keys())
 
     # adds net-gen function of certain type to the internal dict
+
     def add_net(self, params):
         name = params['name']
         var_list = self.vd[name]
@@ -160,6 +161,16 @@ def running_idx(start=0):
     while True:
         yield a
         a += 1
+
+
+def get_batch_dict_gen(data, n_batches, x_pl, hid_pl, hid_shape):
+    assert data.shape[1] % n_batches == 0
+    s = data.shape[1] / n_batches
+    b = 0
+    while True:
+        yield {x_pl: data[:, s*b:s*(b+1), :], hid_pl: np.zeros(hid_shape)}
+        b += 1
+        if b == n_batches: b = 0
 
 
 def plot_img_mats(mat):

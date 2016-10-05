@@ -1,11 +1,19 @@
 import numpy as np
 
 
-def save_series(function, number, length, file_path):
+def save_series1(number, length, file_path):
     series = np.ndarray((number, length))
     for idx in range(number):
-        series[idx, :] = function(length)
+        series[idx, :] = series1_gen(length)
     np.save(file_path, series)
+
+
+def save_series2(number, dim, length, file_path):
+    series = np.ndarray((length, number, dim))
+    for idx in range(number):
+        series[:, idx, :] = series2_gen(length, dim)
+    np.save(file_path, series)
+
 
 
 def load_series(file_path):
@@ -111,7 +119,4 @@ def series2_check(series):
     # return measured probabilities of 0 in each case. should be around [0.9 0.5 0.1  0.2 0.4 0.6]
     return score[:, 0].astype(np.float32) / np.sum(score, 1).astype(np.float32)
 
-s = series2_gen(200, 100)
-print(s)
-c = series2_check(s)
-print(c)
+save_series2(1000, 20, 30, 'data/series2_1000n_20d_30t.npy')
