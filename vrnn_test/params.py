@@ -9,8 +9,8 @@ PARAM_DICT['batch_size'] = 20
 PARAM_DICT['data_dim'] = 20
 PARAM_DICT['n_latent'] = 20
 PARAM_DICT['seq_length'] = 30  # flexible?
-PARAM_DICT['learning_rate'] = 0.1
-PARAM_DICT['max_iter'] = 23
+PARAM_DICT['learning_rate'] = 0.01
+PARAM_DICT['max_iter'] = 2
 PARAM_DICT['hid_state_size'] = 11
 
 # infer some necessary network sizes

@@ -1,6 +1,6 @@
 import tensorflow as tf
 import math
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 from collections import defaultdict
 
@@ -10,6 +10,8 @@ class NetGen:
     def __init__(self):
         self.fd = {}                    # function dict stores generator functions under name
         self.vd = defaultdict(list)     # tensor dict stores list of associated variable tensors under function name
+        # self.cells = {}                 # stores rnn cells by name (mostly for initialization)
+        # self.states = {}                # stores rnn states by name
 
     def __str__(self):
         return str(self.fd.keys())
@@ -35,11 +37,15 @@ class NetGen:
             self.fd[name] = f
 
         if params['nn_type'] is 'simple_lstm':
+            # given the odd way rnns are currently handled in tensorflow,
+            # this function just creates an lstm cell which must then be called inside the loop
+            # with the last state
             layers = params['layers']
+            self.fd[name] = simple_lstm(layers, name)
 
-            def f(in_pl):
-                return simple_lstm(in_pl, layers, name, var_list)
-            self.fd[name] = f
+        if params['nn_type'] is 'general_lstm':
+            layers = params['layers']
+            self.fd[name] = general_lstm(layers, name)
 
     # concatenates several tensors into one input to existing nn of given name
     def weave_inputs(self, name):
@@ -56,6 +62,9 @@ class NetGen:
         for val in self.vd.values():
             val[:] = []
 
+    def init_rnn_states(self):
+        pass
+
 
 def simple_mlp(input_tensor, n_in, n_hid, n_out, scope, var_list):
 
@@ -67,8 +76,8 @@ def simple_mlp(input_tensor, n_in, n_hid, n_out, scope, var_list):
         with tf.name_scope('hidden'):
             if make_vars:
                 var_list.append(tf.Variable(tf.truncated_normal([n_in, n_hid],
-                                         stddev=1.0 / math.sqrt(float(n_in))),
-                                         name='weights'))
+                                            stddev=1.0 / math.sqrt(float(n_in))),
+                                            name='weights'))
             # print(make_vars)
             # print(var_list)
             weights = var_list[ridx.next()]
@@ -82,8 +91,8 @@ def simple_mlp(input_tensor, n_in, n_hid, n_out, scope, var_list):
         with tf.name_scope('output'):
             if make_vars:
                 var_list.append(tf.Variable(tf.truncated_normal([n_hid, n_out],
-                                         stddev=1.0 / math.sqrt(float(n_in))),
-                                         name='weights'))
+                                            stddev=1.0 / math.sqrt(float(n_in))),
+                                            name='weights'))
             weights = var_list[ridx.next()]
 
             if make_vars:
@@ -108,8 +117,8 @@ def general_mlp(input_tensor, layers, name, var_list):
             with tf.name_scope('hidden' + str(idx + 1)):
                 if make_vars:
                     var_list.append(tf.Variable(tf.truncated_normal([layers[idx], layers[idx+1]],
-                                             stddev=1.0 / math.sqrt(float(layers[idx]))),
-                                             name='weights'))
+                                                stddev=1.0 / math.sqrt(float(layers[idx]))),
+                                                name='weights'))
                 weights = var_list[ridx.next()]
 
                 if make_vars:
@@ -122,8 +131,8 @@ def general_mlp(input_tensor, layers, name, var_list):
         with tf.name_scope('out'):
             if make_vars:
                 var_list.append(tf.Variable(tf.truncated_normal([layers[-2], layers[-1]],
-                                         stddev=1.0 / math.sqrt(float(layers[-2]))),
-                                         name='weights'))
+                                            stddev=1.0 / math.sqrt(float(layers[-2]))),
+                                            name='weights'))
             weights = var_list[ridx.next()]
 
             if make_vars:
@@ -134,26 +143,19 @@ def general_mlp(input_tensor, layers, name, var_list):
     return out
 
 
-# TODO: find elegant-ish way of accessing lstm weights for re-use
-def simple_lstm(input_tensor, layers, name, var_list):
-    pass
-#
-#     n_hidden_layers = len(layers) - 1
-#     last = input_tensor
-#     with tf.name_scope(name):
-#         # stack hidden layers
-#         for idx in range(n_hidden_layers):
-#             with tf.name_scope('layer' + str(idx + 1)):
-#
-#                 weights = tf.Variable(tf.truncated_normal([layers[idx], layers[idx+1]],
-#                                       stddev=1.0 / math.sqrt(float(layers[idx]))),
-#                                       name='weights')
-#                 biases = tf.Variable(tf.zeros([layers[idx+1]]), name='biases')
-#                 last = tf.nn.relu(tf.matmul(last, weights) + biases)
-#
-#                 tf.nn.rnn_cell.BasicLSTMCell(size, forget_bias=0.0)
-#
-#     return last
+def simple_lstm(n_units, name):
+    with tf.name_scope(name):
+        cell = tf.nn.rnn_cell.BasicLSTMCell(n_units)
+    return cell
+
+
+def general_lstm(layers, name):
+    cells = []
+    with tf.name_scope(name):
+        for layer in layers:
+            cells.append(tf.nn.rnn_cell.LSTMCell(layer))
+    multi_cell = tf.nn.rnn_cell.MultiRNNCell(cells)
+    return multi_cell
 
 
 def running_idx(start=0):
@@ -173,21 +175,21 @@ def get_batch_dict_gen(data, n_batches, x_pl, hid_pl, hid_shape):
         if b == n_batches: b = 0
 
 
-def plot_img_mats(mat):
-    # plot l*m*n mats as l m by n gray-scale images
-    n = mat.shape[0]
-    cols = int(np.ceil(np.sqrt(n)))
-    rows = int(np.ceil(n // cols))
-
-    plt.style.use('grayscale')
-    fig, ax_list = plt.subplots(ncols=cols, nrows=rows)
-    ax_list = ax_list.flatten()
-
-    for idx, ax in enumerate(ax_list):
-        if idx >= n:
-            ax.axis('off')
-        else:
-            ax.imshow(mat[idx, :, :], interpolation='none')
-            ax.get_xaxis().set_visible(False)
-            ax.get_yaxis().set_visible(False)
-    plt.show()
+# def plot_img_mats(mat):
+#     # plot l*m*n mats as l m by n gray-scale images
+#     n = mat.shape[0]
+#     cols = int(np.ceil(np.sqrt(n)))
+#     rows = int(np.ceil(n // cols))
+#
+#     plt.style.use('grayscale')
+#     fig, ax_list = plt.subplots(ncols=cols, nrows=rows)
+#     ax_list = ax_list.flatten()
+#
+#     for idx, ax in enumerate(ax_list):
+#         if idx >= n:
+#             ax.axis('off')
+#         else:
+#             ax.imshow(mat[idx, :, :], interpolation='none')
+#             ax.get_xaxis().set_visible(False)
+#             ax.get_yaxis().set_visible(False)
+#     plt.show()
