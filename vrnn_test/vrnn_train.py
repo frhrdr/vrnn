@@ -39,8 +39,8 @@ with tf.Graph().as_default():
     hid_pl = tf.placeholder(tf.float32, shape=(PARAM_DICT['batch_size'], PARAM_DICT['hid_state_size']), name='ht_init')
     err_acc = tf.Variable(0, dtype=tf.float32, trainable=False, name='err_acc')
     count = tf.Variable(0, dtype=tf.float32, trainable=False, name='counter')  # tf.to_int32(0, name='counter')
-    #f_state = netgen.fd['f_theta'].zero_state(PARAM_DICT['batch_size'], tf.float32)
-    f_state = tf.Variable(0, dtype=tf.float32, trainable=False, name='debug')
+    f_state = netgen.fd['f_theta'].zero_state(PARAM_DICT['batch_size'], tf.float32)
+    # f_state = tf.Variable(0, dtype=tf.float32, trainable=False, name='debug') # placeholder for case without lstm
     loop_vars = [x_pl, hid_pl, err_acc, count, f_state]
     # loop it
     loop_dummy = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
@@ -70,9 +70,10 @@ with tf.Graph().as_default():
         sess.run(init_op)
 
         # print any other tracked variables in the loop
-        netweights = [netgen.vd['f_theta'][0], netgen.vd['phi_z'][0], netgen.vd['phi_x'][0], netgen.vd['phi_enc'][0],
+        netweights = [netgen.vd['phi_z'][0], netgen.vd['phi_x'][0], netgen.vd['phi_enc'][0],
                       netgen.vd['phi_dec'][0], netgen.vd['phi_prior'][0]]
-        err_final = tf.Print(err_final, netweights, message='errlist', summarize=1)
+        # netgen.vd['f_theta'][0]
+        err_final = tf.Print(err_final, netweights, message='netweights ', summarize=1)
         # err_final = tf.Print(err_final, err_final, message='ok_list')
         # common feature: all broken nets backprop through h
         # without loop, only phi_x and phi_enc break, suggesting the source is at enc, or rather KLdiv / z

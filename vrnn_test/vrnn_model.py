@@ -33,8 +33,8 @@ def inference(in_pl, hid_pl, f_state, param_dict, fun_dict):
 
     # f_theta being an rnn must be handled differently (maybe this inconsistency can be fixed later on)
     f_in = tf.concat(1, [hid_pl, phi_x, phi_z], name="f_theta_joint_inputs")
-    # f_out, f_state = fd['f_theta'](f_in, f_state)
-    f_out = fd['f_theta'](f_in)
+    f_out, f_state = fd['f_theta'](f_in, f_state)
+    # f_out = fd['f_theta'](f_in)
     # f_out = tf.Print(f_out, f_state, message="f_state")
     # f_out = tf.Print(f_out, [f_out, f_in], message="f_out", summarize=10)
     return mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, f_out, f_state

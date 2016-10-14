@@ -46,5 +46,5 @@ PARAM_DICT['phi_dec'] = {'name': 'phi_dec',
                          'layers': [phi_z_out + n_ht, 10, 2*n_out]}
 
 PARAM_DICT['f_theta'] = {'name': 'f_theta',
-                         'nn_type': 'simple_mlp',
+                         'nn_type': 'general_lstm',
                          'layers': [phi_x_out + phi_z_out + n_ht, 10, n_ht]}
