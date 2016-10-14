@@ -43,7 +43,7 @@ with tf.Graph().as_default():
     f_state = tf.Variable(0, dtype=tf.float32, trainable=False, name='debug')
     loop_vars = [x_pl, hid_pl, err_acc, count, f_state]
     # loop it
-    loop_res = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
+    loop_dummy = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
     tf.get_variable_scope().reuse_variables()  # quick fix - only needed for rnn. no idea why
     loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
                              parallel_iterations=1,
@@ -70,10 +70,10 @@ with tf.Graph().as_default():
         sess.run(init_op)
 
         # print any other tracked variables in the loop
-        errlist = [netgen.vd['f_theta'][0], netgen.vd['phi_z'][0], netgen.vd['phi_x'][0], netgen.vd['phi_enc'][0]]
-        err_final = tf.Print(err_final, errlist, message='errlist')
-        ok_list = [netgen.vd['phi_dec'][0], netgen.vd['phi_prior'][0]]
-        err_final = tf.Print(err_final, ok_list, message='ok_list')
+        netweights = [netgen.vd['f_theta'][0], netgen.vd['phi_z'][0], netgen.vd['phi_x'][0], netgen.vd['phi_enc'][0],
+                      netgen.vd['phi_dec'][0], netgen.vd['phi_prior'][0]]
+        err_final = tf.Print(err_final, netweights, message='errlist', summarize=1)
+        # err_final = tf.Print(err_final, err_final, message='ok_list')
         # common feature: all broken nets backprop through h
         # without loop, only phi_x and phi_enc break, suggesting the source is at enc, or rather KLdiv / z
 

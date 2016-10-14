@@ -10,7 +10,7 @@ PARAM_DICT['data_dim'] = 20
 PARAM_DICT['n_latent'] = 20
 PARAM_DICT['seq_length'] = 30  # flexible?
 PARAM_DICT['learning_rate'] = 0.01
-PARAM_DICT['max_iter'] = 2
+PARAM_DICT['max_iter'] = 20
 PARAM_DICT['hid_state_size'] = 11
 
 # infer some necessary network sizes
@@ -43,7 +43,7 @@ PARAM_DICT['phi_z'] = {'name': 'phi_z',
 
 PARAM_DICT['phi_dec'] = {'name': 'phi_dec',
                          'nn_type': 'simple_mlp',
-                         'layers': [phi_z_out + n_ht, 10, n_out]}
+                         'layers': [phi_z_out + n_ht, 10, 2*n_out]}
 
 PARAM_DICT['f_theta'] = {'name': 'f_theta',
                          'nn_type': 'simple_mlp',
