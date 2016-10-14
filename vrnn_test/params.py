@@ -2,6 +2,9 @@ PARAM_DICT = dict()
 
 # data path
 PARAM_DICT['data_path'] = 'data/series2_1000n_20d_30t.npy'
+PARAM_DICT['log_path'] = 'data/logs/test1'
+PARAM_DICT['log_freq'] = 10
+PARAM_DICT['print_freq'] = 5
 
 # specify global settings
 PARAM_DICT['num_batches'] = 50

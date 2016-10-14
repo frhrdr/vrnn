@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
+
 def inference(in_pl, hid_pl, f_state, param_dict, fun_dict):
 
     # rename for brevity
@@ -103,7 +104,8 @@ def loop(x_pl, hid_pl, err_acc, count, f_state, param_dict, fun_dict):
     # x_t = tf.squeeze(tf.slice(x_pl, [tf.to_int32(count), 0, 0], [1, -1, -1]))
     x_t = tf.squeeze(tf.slice(x_pl, [tf.to_int32(10), 0, 0], [1, -1, -1]))
     # build inference model
-    mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, f_theta, f_state = inference(x_t, hid_pl, f_state, param_dict, fun_dict)
+    mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, f_theta, f_state = inference(x_t, hid_pl, f_state,
+                                                                              param_dict, fun_dict)
     # build loss
     step_error = loss(x_t, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict)
     # set hid_pl to result of f_theta
@@ -126,7 +128,8 @@ def get_loop_fun(param_dict, fun_dict):
 
 
 def get_stop_fun(num_iter):
-    def stop_fun(a, b, c, count, d):
+    def stop_fun(*args):
+        count = args[3]
         return tf.less(count, num_iter)
     return stop_fun
 
