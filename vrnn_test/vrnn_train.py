@@ -70,20 +70,16 @@ with tf.Graph().as_default():
         sess.run(init_op)
 
         # print any other tracked variables in the loop
-        netweights = [netgen.vd['phi_z'][0], netgen.vd['phi_x'][0], netgen.vd['phi_enc'][0],
-                      netgen.vd['phi_dec'][0], netgen.vd['phi_prior'][0]]
-        # netgen.vd['f_theta'][0]
-        err_final = tf.Print(err_final, netweights, message='netweights ', summarize=1)
-        # err_final = tf.Print(err_final, err_final, message='ok_list')
-        # common feature: all broken nets backprop through h
-        # without loop, only phi_x and phi_enc break, suggesting the source is at enc, or rather KLdiv / z
+        # netweights = [netgen.vd['phi_z'][0], netgen.vd['phi_x'][0], netgen.vd['phi_enc'][0],
+        #               netgen.vd['phi_dec'][0], netgen.vd['phi_prior'][0]]
+        # f_theta can't be be printed this way
+        # err_final = tf.Print(err_final, netweights, message='netweights ', summarize=1)
 
         for idx in range(PARAM_DICT['max_iter']):
             # fill feed_dict
             feed = batch_dict.next()
 
             # make SummaryWriter
-
 
             # run train_op
             _, err = sess.run([train_op, err_final], feed_dict=feed)
