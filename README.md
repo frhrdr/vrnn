@@ -15,7 +15,6 @@ take look at data sets from rgp paper,
 
 next steps:
 
-write generative version,
 run check function
 
 set up amlab server

@@ -17,8 +17,7 @@ def run_training(param_dict):
     # make log directory and store param_dict
     if not os.path.exists(pd['log_path']):
         os.makedirs(pd['log_path'])
-    np.save(pd['log_path'] + '/params.npy', pd)
-
+    pickle.dump(pd, open(pd['log_path'] + '/params.pkl', 'wb'))
     # set verbosity (doesn't seem to work)
     # tf.logging.set_verbosity(tf.logging.ERROR)
 
@@ -37,13 +36,12 @@ def run_training(param_dict):
     for net in multi_input_nets:
         netgen.weave_inputs(net)
 
-
     # get a graph
     with tf.Graph().as_default():
 
         # get the stop condition and loop function
-        stop_fun = model.get_stop_fun(pd['seq_length'])
-        loop_fun = model.get_loop_fun(pd, netgen.fd)
+        stop_fun = model.get_train_stop_fun(pd['seq_length'])
+        loop_fun = model.get_train_loop_fun(pd, netgen.fd)
 
         # define loop_vars: x_list, hid_pl, err_acc, count
         x_pl = tf.placeholder(tf.float32, name='x_pl',
@@ -52,17 +50,17 @@ def run_training(param_dict):
         err_acc = tf.Variable(0, dtype=tf.float32, trainable=False, name='err_acc')
         count = tf.Variable(0, dtype=tf.float32, trainable=False, name='counter')  # tf.to_int32(0, name='counter')
         f_state = netgen.fd['f_theta'].zero_state(pd['batch_size'], tf.float32)
-        # f_state = tf.Variable(0, dtype=tf.float32, trainable=False, name='debug') # placeholder for case without lstm
         loop_vars = [x_pl, hid_pl, err_acc, count, f_state]
+
         # loop it
-        loop_dummy = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
+        _ = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
         tf.get_variable_scope().reuse_variables()  # quick fix - only needed for rnn. no idea why
         loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
                                  parallel_iterations=1,
                                  swap_memory=False,
                                  name='while_loop')
         err_final = loop_res[2]
-        count_final = loop_res[3]
+
         # get the train_op
         train_op = model.train(err_final, pd['learning_rate'])
 
@@ -106,15 +104,43 @@ def run_training(param_dict):
                     saver.save(sess, checkpoint_file, global_step=(it + 1))
 
 
-def run_generation(params_file, ckpt_file=None):
-    pd = np.load(params_file)
+def run_generation(params_file, ckpt_file=None, batch=None):
+
+    pd = pickle.load(open(params_file, 'rb'))
 
     # set default checkpoint file
     if ckpt_file is None:
         ckpt_file = pd['log_path'] + '/ckpt-' + str(pd['max_iter'])
+    # set custom number of generated samples (not entirely sure this will work)
+    if batch is not None:
+        pd['batch_size'] = batch
+
+    # make nets
+    netgen = NetGen()
+    nets = ['phi_x', 'phi_prior', 'phi_z', 'phi_dec', 'f_theta']  # phi_enc is not used
+    for net in nets:
+        netgen.add_net(pd[net])
+
+    netgen.weave_inputs('phi_dec')
 
     with tf.Graph().as_default():
         # build gen model
+        stop_fun = model.get_gen_stop_fun(pd['seq_length'])
+        loop_fun = model.get_gen_loop_fun(pd, netgen.fd)
+
+        x_pl = tf.zeros([pd['seq_length'], pd['batch_size'], pd['data_dim']], dtype=tf.float32)
+        hid_pl = tf.zeros((pd['batch_size'], pd['hid_state_size']), dtype=tf.float32)
+        count = tf.Variable(0, dtype=tf.float32, trainable=False, name='counter')  # tf.to_int32(0, name='counter')
+        f_state = netgen.fd['f_theta'].zero_state(pd['batch_size'], tf.float32)
+        loop_vars = [x_pl, hid_pl, count, f_state]
+
+        # loop it
+        _ = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
+        tf.get_variable_scope().reuse_variables()  # quick fix - only needed for rnn. no idea why
+        loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
+                                 parallel_iterations=1,
+                                 swap_memory=False)
+        x_final = loop_res[0]
 
         with tf.Session() as sess:
             # load weights
@@ -122,6 +148,6 @@ def run_generation(params_file, ckpt_file=None):
             saver.restore(sess, ckpt_file)
 
             # run generative model as desired
+            x_gen = sess.run(x_final)
 
-
-run_generation('data/logs/test1/params.npy')
+            return x_gen

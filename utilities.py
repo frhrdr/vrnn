@@ -22,28 +22,28 @@ class NetGen:
         name = params['name']
         var_list = self.vd[name]
 
-        if params['nn_type'] is 'simple_mlp':
+        if params['nn_type'] == 'simple_mlp':
             n_in, n_hid, n_out = params['layers']
 
             def f(in_pl):
                 return simple_mlp(in_pl, n_in, n_hid, n_out, name, var_list)
             self.fd[name] = f
 
-        if params['nn_type'] is 'general_mlp':
+        if params['nn_type'] == 'general_mlp':
             layers = params['layers']
 
             def f(in_pl):
                 return general_mlp(in_pl, layers, name, var_list)
             self.fd[name] = f
 
-        if params['nn_type'] is 'simple_lstm':
+        if params['nn_type'] == 'simple_lstm':
             # given the odd way rnns are currently handled in tensorflow,
             # this function just creates an lstm cell which must then be called inside the loop
             # with the last state
             layers = params['layers']
             self.fd[name] = simple_lstm(layers, name)
 
-        if params['nn_type'] is 'general_lstm':
+        if params['nn_type'] == 'general_lstm':
             layers = params['layers']
             self.fd[name] = general_lstm(layers, name)
 
