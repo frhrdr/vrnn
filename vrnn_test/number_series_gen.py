@@ -15,7 +15,6 @@ def save_series2(number, dim, length, file_path):
     np.save(file_path, series)
 
 
-
 def load_series(file_path):
     return np.load(file_path)
 
@@ -76,7 +75,6 @@ def series2_gen(length, dim):
     # lacks longer term dependencies. but maybe good enough for now
     series = np.zeros((length, dim))
     for t in range(1, length):
-        timestep = np.zeros((dim,))
         for idx in range(dim):
             if series[t-1, idx] == 0:
                 odds = 0.1
@@ -98,11 +96,12 @@ def series2_check(series):
     # 1->0:  3) p=0.2  4) p=0.4  5) p=0.6
     # choice in dimension 2: 0) picked 0, 1) picked 1)
     score = np.zeros((6, 2), dtype=np.int)
+    series = np.minimum(series, np.ones(series.shape))
+    series = np.maximum(series, np.zeros(series.shape))
     series = series.round().astype(np.int32)
     length = series.shape[0]
     dim = series.shape[1]
     for t in range(1, length):
-        timestep = np.zeros((dim,))
         for idx in range(dim):
             choice = series[t, idx]
             if series[t-1, idx] == 0:
@@ -116,7 +115,8 @@ def series2_check(series):
                 if idx > 1 and series[t-1, idx-2] == 1: rule += 1
                 score[rule, choice] += 1
 
+    norm = np.sum(score, 1).astype(np.float32)
+    norm = np.maximum(norm, np.ones(norm.shape))
+    print(length, dim)
     # return measured probabilities of 0 in each case. should be around [0.9 0.5 0.1  0.2 0.4 0.6]
-    return score[:, 0].astype(np.float32) / np.sum(score, 1).astype(np.float32)
-
-save_series2(1000, 20, 30, 'data/series2_1000n_20d_30t.npy')
+    return score[:, 0].astype(np.float32) / norm

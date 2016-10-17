@@ -3,10 +3,26 @@ import numpy as np
 import time
 import os.path
 import pickle
-from utilities import NetGen, get_batch_dict_gen
+from utilities import NetGen
 import vrnn_model as model
 # load param_dict for the overall model
 from params import PARAM_DICT
+
+
+def get_train_batch_dict_generator(data, x_pl, hid_pl, eps_z, pd):
+    assert data.shape[1] % pd['num_batches'] == 0
+    s = data.shape[1] / pd['num_batches']
+    b = 0
+    d = {}
+    while True:
+        d[x_pl] = data[:, s*b:s*(b+1), :]  # input
+        d[hid_pl] = np.zeros((pd['batch_size'], pd['hid_state_size']))  # initial hidden state
+        # 'fresh' noise for sampling
+        d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['n_latent']))
+        yield d
+        b += 1
+        if b == pd['num_batches']:
+            b = 0
 
 
 def run_training(param_dict):
@@ -46,14 +62,16 @@ def run_training(param_dict):
         # define loop_vars: x_list, hid_pl, err_acc, count
         x_pl = tf.placeholder(tf.float32, name='x_pl',
                               shape=(pd['seq_length'], pd['batch_size'], pd['data_dim']))
+        eps_z = tf.placeholder(tf.float32, name='eps_z',
+                               shape=(pd['seq_length'], pd['batch_size'], pd['n_latent']))
         hid_pl = tf.placeholder(tf.float32, shape=(pd['batch_size'], pd['hid_state_size']), name='ht_init')
         err_acc = tf.Variable(0, dtype=tf.float32, trainable=False, name='err_acc')
         count = tf.Variable(0, dtype=tf.float32, trainable=False, name='counter')  # tf.to_int32(0, name='counter')
         f_state = netgen.fd['f_theta'].zero_state(pd['batch_size'], tf.float32)
-        loop_vars = [x_pl, hid_pl, err_acc, count, f_state]
+        loop_vars = [x_pl, hid_pl, err_acc, count, f_state, eps_z]
 
         # loop it
-        _ = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
+        loop_res = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
         tf.get_variable_scope().reuse_variables()  # quick fix - only needed for rnn. no idea why
         loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
                                  parallel_iterations=1,
@@ -65,8 +83,7 @@ def run_training(param_dict):
         train_op = model.train(err_final, pd['learning_rate'])
 
         # make a batch dict generator with the given placeholder
-        batch_dict = get_batch_dict_gen(data, pd['num_batches'], x_pl, hid_pl,
-                                        (pd['batch_size'], pd['hid_state_size']))
+        batch_dict = get_train_batch_dict_generator(data, x_pl, hid_pl, eps_z, pd)
 
         # get a session
         with tf.Session() as sess:
@@ -78,15 +95,15 @@ def run_training(param_dict):
             init_op = tf.group(tf.initialize_all_variables(), tf.initialize_local_variables())
             sess.run(init_op)
 
-            summary_writer = tf.train.SummaryWriter(pd['log_path'], sess.graph)
-            summary_op = tf.merge_all_summaries()
+            # summary_writer = tf.train.SummaryWriter(pd['log_path'], sess.graph)
+            # summary_op = tf.merge_all_summaries()
             saver = tf.train.Saver()
 
             # print any other tracked variables in the loop
-            # netweights = [netgen.vd['phi_z'][0], netgen.vd['phi_x'][0], netgen.vd['phi_enc'][0],
-            #               netgen.vd['phi_dec'][0], netgen.vd['phi_prior'][0]]
+            netweights = [netgen.vd['phi_z'][0], netgen.vd['phi_x'][0], netgen.vd['phi_enc'][0],
+                          netgen.vd['phi_dec'][0], netgen.vd['phi_prior'][0]]
             # f_theta can't be be printed this way
-            # err_final = tf.Print(err_final, netweights, message='netweights ', summarize=1)
+            err_final = tf.Print(err_final, netweights, message='netweights ', summarize=1)
 
             for it in range(pd['max_iter']):
                 # fill feed_dict
@@ -96,12 +113,28 @@ def run_training(param_dict):
                 _, err = sess.run([train_op, err_final], feed_dict=feed)
 
                 if (it + 1) % pd['print_freq'] == 0:
-                    print('iteration ' + str(it + 1) + ' error: ' + str(err) + ' time: ' + str(time.time() - start_time))
+                    print('iteration ' + str(it + 1) +
+                          ' error: ' + str(err) +
+                          ' time: ' + str(time.time() - start_time))
 
                 # occasionally save weights and log
                 if (it + 1) % pd['log_freq'] == 0 or (it + 1) == pd['max_iter']:
                     checkpoint_file = os.path.join(pd['log_path'], 'ckpt')
                     saver.save(sess, checkpoint_file, global_step=(it + 1))
+
+
+def get_gen_batch_dict_generator(hid_pl, eps_z, eps_x, pd):
+    b = 0
+    d = {}
+    while True:
+        d[hid_pl] = np.zeros((pd['batch_size'], pd['hid_state_size']))  # initial hidden state
+        # 'fresh' noise for sampling
+        d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['n_latent']))
+        d[eps_x] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['data_dim']))
+        yield d
+        b += 1
+        if b == pd['num_batches']:
+            b = 0
 
 
 def run_generation(params_file, ckpt_file=None, batch=None):
@@ -129,10 +162,14 @@ def run_generation(params_file, ckpt_file=None, batch=None):
         loop_fun = model.get_gen_loop_fun(pd, netgen.fd)
 
         x_pl = tf.zeros([pd['seq_length'], pd['batch_size'], pd['data_dim']], dtype=tf.float32)
-        hid_pl = tf.zeros((pd['batch_size'], pd['hid_state_size']), dtype=tf.float32)
+        eps_z = tf.placeholder(tf.float32, shape=(pd['seq_length'], pd['batch_size'], pd['n_latent']),
+                               name='eps_z')
+        eps_x = tf.placeholder(tf.float32, shape=(pd['seq_length'], pd['batch_size'], pd['data_dim']),
+                               name='eps_x')
+        hid_pl = tf.placeholder(tf.float32, shape=(pd['batch_size'], pd['hid_state_size']), name='ht_init')
         count = tf.Variable(0, dtype=tf.float32, trainable=False, name='counter')  # tf.to_int32(0, name='counter')
         f_state = netgen.fd['f_theta'].zero_state(pd['batch_size'], tf.float32)
-        loop_vars = [x_pl, hid_pl, count, f_state]
+        loop_vars = [x_pl, hid_pl, count, f_state, eps_z, eps_x]
 
         # loop it
         _ = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
@@ -142,12 +179,15 @@ def run_generation(params_file, ckpt_file=None, batch=None):
                                  swap_memory=False)
         x_final = loop_res[0]
 
+        batch_dict = get_gen_batch_dict_generator(hid_pl, eps_z, eps_x, pd)
+
         with tf.Session() as sess:
             # load weights
             saver = tf.train.Saver()
             saver.restore(sess, ckpt_file)
 
+            feed = batch_dict.next()
             # run generative model as desired
-            x_gen = sess.run(x_final)
+            x_gen = sess.run(x_final, feed_dict=feed)
 
             return x_gen

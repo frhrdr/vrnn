@@ -1,8 +1,8 @@
+from vae_train import *
 import utilities as util
 from params import *
-from vae_train import *
 
-decoder_fun = lambda t_in, in_dims, n_out: util.simple_mlp(t_in, in_dims, DEFAULT_N_HIDDEN, n_out, 'decoder')
+decoder_fun = lambda t_in, in_dims, n_out: util.simple_mlp(t_in, in_dims, DEFAULT_N_HIDDEN, n_out, 'decoder', [])
 
 # run_training(encoder_fun=None, decoder_fun=decoder_fun)
 

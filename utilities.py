@@ -1,6 +1,6 @@
 import tensorflow as tf
 import math
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import numpy as np
 from collections import defaultdict
 
@@ -107,7 +107,7 @@ def simple_mlp(input_tensor, n_in, n_hid, n_out, scope, var_list):
 def general_mlp(input_tensor, layers, name, var_list):
 
     ridx = running_idx()
-    make_vars = var_list is []
+    make_vars = var_list == []
 
     n_hidden_layers = len(layers) - 2
     last = input_tensor
@@ -165,31 +165,21 @@ def running_idx(start=0):
         a += 1
 
 
-def get_batch_dict_gen(data, n_batches, x_pl, hid_pl, hid_shape):
-    assert data.shape[1] % n_batches == 0
-    s = data.shape[1] / n_batches
-    b = 0
-    while True:
-        yield {x_pl: data[:, s*b:s*(b+1), :], hid_pl: np.zeros(hid_shape)}
-        b += 1
-        if b == n_batches: b = 0
+def plot_img_mats(mat):
+    # plot l*m*n mats as l m by n gray-scale images
+    n = mat.shape[0]
+    cols = int(np.ceil(np.sqrt(n)))
+    rows = int(np.ceil(n // cols))
 
+    plt.style.use('grayscale')
+    fig, ax_list = plt.subplots(ncols=cols, nrows=rows)
+    ax_list = ax_list.flatten()
 
-# def plot_img_mats(mat):
-#     # plot l*m*n mats as l m by n gray-scale images
-#     n = mat.shape[0]
-#     cols = int(np.ceil(np.sqrt(n)))
-#     rows = int(np.ceil(n // cols))
-#
-#     plt.style.use('grayscale')
-#     fig, ax_list = plt.subplots(ncols=cols, nrows=rows)
-#     ax_list = ax_list.flatten()
-#
-#     for idx, ax in enumerate(ax_list):
-#         if idx >= n:
-#             ax.axis('off')
-#         else:
-#             ax.imshow(mat[idx, :, :], interpolation='none')
-#             ax.get_xaxis().set_visible(False)
-#             ax.get_yaxis().set_visible(False)
-#     plt.show()
+    for idx, ax in enumerate(ax_list):
+        if idx >= n:
+            ax.axis('off')
+        else:
+            ax.imshow(mat[idx, :, :], interpolation='none')
+            ax.get_xaxis().set_visible(False)
+            ax.get_yaxis().set_visible(False)
+    plt.show()
