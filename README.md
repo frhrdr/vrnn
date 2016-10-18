@@ -14,10 +14,6 @@ try and get RGP implementation running,
 take look at data sets from rgp paper,
 
 next steps:
-
-run check function
-
-set up amlab server
 think of decent model parameters, net sizes
 train for real
 run check

@@ -72,7 +72,7 @@ def run_training(param_dict):
 
         # loop it
         loop_res = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
-        tf.get_variable_scope().reuse_variables()  # quick fix - only needed for rnn. no idea why
+        tf.get_variable_scope().reuse_variables()
         loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
                                  parallel_iterations=1,
                                  swap_memory=False,
@@ -80,7 +80,7 @@ def run_training(param_dict):
         err_final = loop_res[2]
 
         # get the train_op
-        train_op = model.train(err_final, pd['learning_rate'])
+        train_op, grad_print = model.train(err_final, pd['learning_rate'])
 
         # make a batch dict generator with the given placeholder
         batch_dict = get_train_batch_dict_generator(data, x_pl, hid_pl, eps_z, pd)
@@ -100,10 +100,10 @@ def run_training(param_dict):
             saver = tf.train.Saver()
 
             # print any other tracked variables in the loop
-            netweights = [netgen.vd['phi_z'][0], netgen.vd['phi_x'][0], netgen.vd['phi_enc'][0],
-                          netgen.vd['phi_dec'][0], netgen.vd['phi_prior'][0]]
-            # f_theta can't be be printed this way
-            err_final = tf.Print(err_final, netweights, message='netweights ', summarize=1)
+            # netweights = [netgen.vd['phi_z'][0], netgen.vd['phi_x'][0], netgen.vd['phi_enc'][0],
+            #               netgen.vd['phi_dec'][0], netgen.vd['phi_prior'][0]]
+            # # f_theta can't be be printed this way
+            # net_print = tf.Print(err_final, netweights, message='netweights ', summarize=1)
 
             for it in range(pd['max_iter']):
                 # fill feed_dict
@@ -113,9 +113,11 @@ def run_training(param_dict):
                 _, err = sess.run([train_op, err_final], feed_dict=feed)
 
                 if (it + 1) % pd['print_freq'] == 0:
+
                     print('iteration ' + str(it + 1) +
                           ' error: ' + str(err) +
                           ' time: ' + str(time.time() - start_time))
+                    sess.run([grad_print], feed_dict=feed)
 
                 # occasionally save weights and log
                 if (it + 1) % pd['log_freq'] == 0 or (it + 1) == pd['max_iter']:

@@ -13,23 +13,22 @@ def inference(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict):
     phi_enc = fd['phi_enc'](phi_x, hid_pl)
     mean_z = tf.slice(phi_enc, [0, 0], [pd['batch_size'], pd['n_latent']], name='mean_z')
     cov_z = tf.slice(phi_enc, [0, pd['n_latent']], [pd['batch_size'], pd['n_latent']], name='cov_z')
+    cov_z = tf.nn.softplus(cov_z)
 
     phi_prior = fd['phi_prior'](hid_pl)
     mean_0 = tf.slice(phi_prior, [0, 0], [pd['batch_size'], pd['n_latent']], name='mean_0')
     cov_0 = tf.slice(phi_prior, [0, pd['n_latent']], [pd['batch_size'], pd['n_latent']], name='cov_0')
-
-    # make sure covariances are not 0
-    cov_0 = tf.add(cov_0, tf.to_float(0.1))
-    cov_z = tf.add(cov_z, tf.to_float(0.1))
+    cov_0 = tf.nn.softplus(cov_0)
 
     z = tf.add(mean_z, tf.mul(cov_z, eps_z), name='z_vec')
 
     phi_z = fd['phi_z'](z)
     phi_dec = fd['phi_dec'](phi_z, hid_pl)
 
-    mean_x = tf.slice(phi_dec, [0, 0], [pd['batch_size'], pd['n_latent']], name='mean_x')
-    cov_x = tf.slice(phi_dec, [0, pd['n_latent']], [pd['batch_size'], pd['n_latent']], name='cov_x')
-    cov_x = tf.add(cov_x, tf.to_float(0.1))  # quick fix: initializing cov_x too small gets log(0)s
+    mean_x = tf.slice(phi_dec, [0, 0], [pd['batch_size'], pd['data_dim']], name='mean_x')
+    cov_x = tf.slice(phi_dec, [0, pd['data_dim']], [pd['batch_size'], pd['data_dim']], name='cov_x')
+    cov_x = tf.nn.softplus(cov_x)
+    # cov_x = tf.add(cov_x, tf.to_float(0.1))  # quick fix: initializing cov_x too small gets log(0)s
 
     # f_theta being an rnn must be handled differently (maybe this inconsistency can be fixed later on)
     f_in = tf.concat(1, [hid_pl, phi_x, phi_z], name='f_theta_joint_inputs')
@@ -37,6 +36,7 @@ def inference(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict):
     # f_out = fd['f_theta'](f_in)
     # f_out = tf.Print(f_out, f_state, message="f_state")
     # f_out = tf.Print(f_out, [f_out, f_in], message="f_out", summarize=10)
+    # f_out = tf.Print(f_out, [mean_0, cov_0, mean_z, cov_z, mean_x, cov_x], message="mc_0zx ", summarize=3)
     return mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, f_out, f_state
 
 
@@ -80,12 +80,13 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict):
 
     temp = tf.div(cov_0_det2, cov_z_det, name='kl8')
     log_term = tf.log(temp, name='kl9')
-    log_term = tf.Print(log_term, [log_term], message="log_term")
+    # log_term = tf.Print(log_term, [log_term], message="log_term")
     kl_div = tf.div(tf.add(tf.add(trace_term, square_term, name='kl10'),
                            tf.sub(log_term, k, name='kl11'), name='kl12'),
                     tf.to_float(2), name='kl_div')
-    kl_div = tf.Print(kl_div, [kl_div], message="kl_div ")
-    kl_div = tf.Print(kl_div, [tf.gradients(temp, [cov_z_det]), temp, cov_0_det, cov_z_det], message="grad ")
+    # kl_div = tf.Print(kl_div, [kl_div], message="kl_div ")
+    # kl_div = tf.Print(kl_div, [tf.gradients(temp, [cov_z_det]), temp, cov_0_det, cov_z_det], message="grad ")
+
     # negative variational lower bound
     # (optimizer can only minimize - same as maximizing positive lower bound
     bound = tf.sub(kl_div, log_p, name='neg_lower_bound')
@@ -94,6 +95,28 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict):
     bound = tf.reduce_mean(bound, name='avg_neg_lower_bound')
 
     return bound
+
+
+def train(err_acc, learning_rate):
+    tf.scalar_summary(err_acc.op.name, err_acc)
+    optimizer = tf.train.AdagradOptimizer(learning_rate=learning_rate)
+    # global_step = tf.Variable(0, name='global_step', trainable=False)
+
+    tvars = tf.trainable_variables()
+
+    # grads = [tf.clip_by_value(k, -0.01, 0.01) for k in tf.gradients(err_acc, tvars)]
+    grads, _ = tf.clip_by_global_norm(tf.gradients(err_acc, tvars), 1)
+
+    abs_grads = [tf.abs(k) for k in grads]
+    max_grads = [tf.reduce_max(k) for k in abs_grads]
+    mean_grads = [tf.reduce_mean(k) for k in abs_grads]
+    grad_print = tf.Print(grads[0], max_grads, summarize=1, message='max_grads ')
+    grad_print = tf.Print(grad_print, mean_grads, summarize=1, message='mean_grads ')
+
+    train_op = optimizer.apply_gradients(zip(grads, tvars))
+
+    # train_op = optimizer.minimize(err_acc)  # , global_step=global_step)
+    return train_op, grad_print
 
 
 def train_loop(x_pl, hid_pl, err_acc, count, f_state, eps_z, param_dict, fun_dict):
@@ -141,9 +164,7 @@ def generation(hid_pl, f_state, eps_z, eps_x, param_dict, fun_dict):
     phi_prior = fd['phi_prior'](hid_pl)
     mean_0 = tf.slice(phi_prior, [0, 0], [pd['batch_size'], pd['n_latent']], name='mean_0')
     cov_0 = tf.slice(phi_prior, [0, pd['n_latent']], [pd['batch_size'], pd['n_latent']], name='cov_0')
-
-    # make sure covariances are not 0
-    cov_0 = tf.add(cov_0, tf.to_float(0.01))
+    cov_0 = tf.nn.softplus(cov_0)
 
     z = tf.add(mean_0, tf.mul(cov_0, eps_z), name='z_vec')
 
@@ -153,6 +174,7 @@ def generation(hid_pl, f_state, eps_z, eps_x, param_dict, fun_dict):
     mean_x = tf.slice(phi_dec, [0, 0], [pd['batch_size'], pd['n_latent']], name='mean_x')
     cov_x = tf.slice(phi_dec, [0, pd['n_latent']], [pd['batch_size'], pd['n_latent']], name='cov_x')
     cov_x = tf.add(cov_x, tf.to_float(0.1))  # quick fix: initializing cov_x too small gets log(0)s
+    cov_x = tf.nn.softplus(cov_x)
 
     x = tf.add(mean_x, tf.mul(cov_x, eps_x), name='z_vec')
 
@@ -165,21 +187,6 @@ def generation(hid_pl, f_state, eps_z, eps_x, param_dict, fun_dict):
     # f_out = tf.Print(f_out, f_state, message="f_state")
     # f_out = tf.Print(f_out, [f_out, f_in], message="f_out", summarize=10)
     return x, f_out, f_state
-
-
-def train(err_acc, learning_rate):
-    tf.scalar_summary(err_acc.op.name, err_acc)
-    optimizer = tf.train.AdagradOptimizer(learning_rate=learning_rate)
-    # global_step = tf.Variable(0, name='global_step', trainable=False)
-
-    tvars = tf.trainable_variables()
-
-    grads, _ = tf.clip_by_global_norm(tf.gradients(err_acc, tvars), 1)
-    grads[0] = tf.Print(grads[0], grads, summarize=1)
-    train_op = optimizer.apply_gradients(zip(grads, tvars))
-
-    # train_op = optimizer.minimize(err_acc)  # , global_step=global_step)
-    return train_op
 
 
 def gen_loop(x_pl, hid_pl, count, f_state, eps_z, eps_x, param_dict, fun_dict):
