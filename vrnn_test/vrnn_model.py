@@ -27,46 +27,39 @@ def inference(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict):
 def loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict):
 
     k = param_dict['n_latent']
-    x_diff = tf.sub(x_target, mean_x)
-    x_square = tf.matmul(tf.div(x_diff, cov_x), x_diff, transpose_a=True)
+    x_diff = x_target - mean_x
+    x_square = tf.reduce_sum(x_diff * cov_x * x_diff, reduction_indices=[1])
     log_x_exp = -0.5 * x_square
     cov_x_det = tf.reduce_prod(cov_x, reduction_indices=[1])
     log_x_norm = -0.5 * (k * tf.log(2*np.pi) + tf.log(cov_x_det))
-    log_p = tf.add(log_x_norm, log_x_exp)
+    log_p = log_x_norm + log_x_exp
     # log_p = tf.mul(x_norm, x_exp)  # chung doesn't take log here - maybe for stability
     # log_p = tf.Print(log_p, [tf.reduce_mean(tf.gradients(log_p, [cov_x]))], message='glog')
     # log_p = tf.Print(log_p, [tf.reduce_mean(tf.gradients(cov_x_det, [cov_x]))], message='gdet')
     # log_p = tf.Print(log_p, [tf.reduce_mean(tf.gradients(log_x_exp, [cov_x]))], message='gexp')
     # log_p = tf.Print(log_p, [tf.reduce_mean(tf.gradients(log_x_norm, [cov_x]))], message='gnorm')
     # log_p = tf.Print(log_p, [log_x_norm, log_x_exp, cov_x_det], message='norm_exp_sqrtdet')
-    log_p = tf.Print(log_p, [log_p], message='log p ')
-    log_p = tf.Print(log_p, [log_x_exp, log_x_norm], message='log p comps ')
+    # log_p = tf.Print(log_p, [log_p], message='log p ')
+    # log_p = tf.Print(log_p, [log_x_exp, log_x_norm, x_square, cov_x, x_diff], message='log p comps ')
+
     # make tensor for KL divergence from means and covariance vectors
     # following equation 6 from the VAE tutorial
     k = tf.to_float(k)
-    mean_diff = tf.sub(mean_0, mean_z, name='kl1')
+    mean_diff = mean_0 - mean_z
     cov_0_inv = tf.inv(cov_0)
-    # cov_z = tf.Print(cov_z, [cov_z, mean_z], message="cov_and_mean_x")
-    cov_0_det = tf.reduce_prod(cov_0, reduction_indices=[1], name='kl2')
-    cov_z_det = tf.reduce_prod(cov_z, reduction_indices=[1], name='kl3')
-    trace_term = tf.reduce_sum(tf.mul(cov_0_inv, cov_z), reduction_indices=[1], name='kl4')
-    # trace_term = tf.Print(trace_term, [mean_diff, cov_0_inv, mean_0, mean_z], message='md_ci_m0_mz ')
-    square_term = tf.reduce_sum(tf.mul(tf.mul(mean_diff, cov_0_inv, name='kl5'),
-                                       mean_diff, name='kl6'),
-                                reduction_indices=[1], name='kl7')
+    cov_0_det = tf.reduce_prod(cov_0, reduction_indices=[1])
+    cov_z_det = tf.reduce_prod(cov_z, reduction_indices=[1])
 
-    # cov_z_det = tf.mul(cov_z_det, tf.to_float(10.0**20))  # quick fix: det^2 in derivative under-flows to 0 otherwise
-    # cov_0_det2 = tf.mul(cov_0_det, tf.to_float(10.0**20))
-    #
-    temp = tf.div(cov_0_det, cov_z_det, name='kl8')
-    # log_term = tf.log(temp, name='kl9')
+    trace_term = tf.reduce_sum(cov_0_inv * cov_z, reduction_indices=[1])
+    square_term = tf.reduce_sum(mean_diff * cov_0_inv * mean_diff, reduction_indices=[1])
     log_term = tf.log(cov_0_det) - tf.log(cov_z_det)
+
     kl_div = tf.div(tf.add(tf.add(trace_term, square_term, name='kl10'),
                            tf.sub(log_term, k, name='kl11'), name='kl12'),
                     tf.to_float(2), name='kl_div')
-    kl_div = tf.Print(kl_div, [kl_div], message="kl_div ")
-    # kl_div = tf.Print(kl_div, [tf.gradients(log_term, [cov_z_det]), temp, tf.log(cov_0_det), tf.log(cov_z_det)], message="grad ")
-    kl_div = tf.Print(kl_div, [trace_term, square_term, log_term], message="kl-comps ")
+    # kl_div = tf.Print(kl_div, [kl_div], message="kl_div ")
+    # kl_div = tf.Print(kl_div, [trace_term, square_term, log_term], message="kl-comps ")
+
     # negative variational lower bound
     # (optimizer can only minimize - same as maximizing positive lower bound
     bound = tf.sub(kl_div, log_p, name='neg_lower_bound')
@@ -84,13 +77,14 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict):
 
 def train(err_acc, learning_rate):
     tf.scalar_summary(err_acc.op.name, err_acc)
-    optimizer = tf.train.AdagradOptimizer(learning_rate=learning_rate)
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     # global_step = tf.Variable(0, name='global_step', trainable=False)
 
     tvars = tf.trainable_variables()
 
     # grads = [tf.clip_by_value(k, -0.01, 0.01) for k in tf.gradients(err_acc, tvars)]
     grads, _ = tf.clip_by_global_norm(tf.gradients(err_acc, tvars), 1)
+    # grads = [tf.clip_by_norm(k, 1) for k in tf.gradients(err_acc, tvars)]
 
     # DEBUG
     abs_grads = [tf.abs(k) for k in tf.gradients(err_acc, tvars) if k is not None]
@@ -104,7 +98,6 @@ def train(err_acc, learning_rate):
     mean_grads = [tf.reduce_mean(k) for k in abs_grads]
     grad_print = tf.Print(grad_print, max_grads, summarize=1, message='max_g_c ')
     grad_print = tf.Print(grad_print, mean_grads, summarize=1, message='mean_g_c ')
-
 
     train_op = optimizer.apply_gradients(zip(grads, tvars))
 
@@ -183,8 +176,6 @@ def gen_loop(x_pl, hid_pl, count, f_state, eps_z, eps_x, param_dict, fun_dict):
     x_t = tf.reshape(x_t, [1, pd['batch_size'], pd['data_dim']])
     x_pl = tf.concat(0, [x_old, x_t, x_empty])
     x_pl.set_shape([pd['seq_length'], pd['batch_size'], pd['data_dim']])
-    # x_pl = tf.Print(x_pl, [tf.squeeze(tf.slice(x_pl, [0, 0, 0], [-1, 1, 1]))],
-    #                 message='x ', summarize=pd['seq_length'])
 
     count = tf.add(count, 1)
 
