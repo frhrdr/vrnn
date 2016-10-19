@@ -9,59 +9,38 @@ def inference(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict):
     fd = fun_dict
 
     phi_x = fd['phi_x'](in_pl)
-
-    phi_enc = fd['phi_enc'](phi_x, hid_pl)
-    mean_z = tf.slice(phi_enc, [0, 0], [pd['batch_size'], pd['n_latent']], name='mean_z')
-    cov_z = tf.slice(phi_enc, [0, pd['n_latent']], [pd['batch_size'], pd['n_latent']], name='cov_z')
-    cov_z = tf.nn.softplus(cov_z)
-
-    phi_prior = fd['phi_prior'](hid_pl)
-    mean_0 = tf.slice(phi_prior, [0, 0], [pd['batch_size'], pd['n_latent']], name='mean_0')
-    cov_0 = tf.slice(phi_prior, [0, pd['n_latent']], [pd['batch_size'], pd['n_latent']], name='cov_0')
-    cov_0 = tf.nn.softplus(cov_0)
-
+    mean_0, cov_0 = fd['phi_prior'](hid_pl)
+    mean_z, cov_z = fd['phi_enc'](phi_x, hid_pl)
     z = tf.add(mean_z, tf.mul(cov_z, eps_z), name='z_vec')
-
     phi_z = fd['phi_z'](z)
-    phi_dec = fd['phi_dec'](phi_z, hid_pl)
-
-    mean_x = tf.slice(phi_dec, [0, 0], [pd['batch_size'], pd['data_dim']], name='mean_x')
-    cov_x = tf.slice(phi_dec, [0, pd['data_dim']], [pd['batch_size'], pd['data_dim']], name='cov_x')
-    cov_x = tf.nn.softplus(cov_x)
-    # cov_x = tf.add(cov_x, tf.to_float(0.1))  # quick fix: initializing cov_x too small gets log(0)s
+    mean_x, cov_x = fd['phi_dec'](phi_z, hid_pl)
 
     # f_theta being an rnn must be handled differently (maybe this inconsistency can be fixed later on)
     f_in = tf.concat(1, [hid_pl, phi_x, phi_z], name='f_theta_joint_inputs')
     f_out, f_state = fd['f_theta'](f_in, f_state)
-    # f_out = fd['f_theta'](f_in)
-    # f_out = tf.Print(f_out, f_state, message="f_state")
-    # f_out = tf.Print(f_out, [f_out, f_in], message="f_out", summarize=10)
-    # f_out = tf.Print(f_out, [mean_0, cov_0, mean_z, cov_z, mean_x, cov_x], message="mc_0zx ", summarize=3)
+
+    # f_out = tf.Print(f_out, [mean_0, cov_0, mean_z, cov_z, mean_x, cov_x], message="mc_0zx ")
+
     return mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, f_out, f_state
 
 
 def loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict):
-        # rec err replaced by explicit log p(x) through mean_x and cov_x
-        # # make tensor for reconstruction err from target and phi_dec
-        # diff = tf.sub(target, phi_dec, name='re1')
-        # # diff = tf.Print(diff, [diff], message="diff")
-        # rec_err = tf.reduce_sum(tf.mul(diff, diff, name='re2'), reduction_indices=[1], name='rec_err')
-        # # rec_err = tf.Print(rec_err, [rec_err], message="rec_err")
+
     k = param_dict['n_latent']
     x_diff = tf.sub(x_target, mean_x)
     x_square = tf.matmul(tf.div(x_diff, cov_x), x_diff, transpose_a=True)
-    x_exp = tf.exp(tf.div(x_square, tf.to_float(-2)))
-    cov_x_sqrt = tf.sqrt(cov_x)  # taking square roots first for numerical stability (operations are clearly equivalent)
-    cov_x_det_sqrt = tf.reduce_prod(cov_x_sqrt, reduction_indices=[1])
-    x_norm = tf.div(tf.to_float((2*np.pi)**(-k / 2.0)), cov_x_det_sqrt)
-    log_p = tf.log(tf.mul(x_norm, x_exp))
-    # log_p = tf.Print(log_p, tf.gradients(log_p, [cov_x]), message='glog')
-    # log_p = tf.Print(log_p, tf.gradients(cov_x_det_sqrt, [cov_x]), message='gdet')
-    # log_p = tf.Print(log_p, tf.gradients(x_exp, [cov_x]), message='gexp')
-    # log_p = tf.Print(log_p, tf.gradients(x_norm, [cov_x]), message='gnorm')
-    # log_p = tf.Print(log_p, [x_norm, x_exp, cov_x_det_sqrt], message='norm_exp_sqrtdet')
-    # log_p = tf.Print(log_p, [log_p], message='log p ')
-    # log_p = tf.Print(log_p, [tf.reduce_max(log_p)], message='log p max ')
+    log_x_exp = -0.5 * x_square
+    cov_x_det = tf.reduce_prod(cov_x, reduction_indices=[1])
+    log_x_norm = -0.5 * (k * tf.log(2*np.pi) + tf.log(cov_x_det))
+    log_p = tf.add(log_x_norm, log_x_exp)
+    # log_p = tf.mul(x_norm, x_exp)  # chung doesn't take log here - maybe for stability
+    # log_p = tf.Print(log_p, [tf.reduce_mean(tf.gradients(log_p, [cov_x]))], message='glog')
+    # log_p = tf.Print(log_p, [tf.reduce_mean(tf.gradients(cov_x_det, [cov_x]))], message='gdet')
+    # log_p = tf.Print(log_p, [tf.reduce_mean(tf.gradients(log_x_exp, [cov_x]))], message='gexp')
+    # log_p = tf.Print(log_p, [tf.reduce_mean(tf.gradients(log_x_norm, [cov_x]))], message='gnorm')
+    # log_p = tf.Print(log_p, [log_x_norm, log_x_exp, cov_x_det], message='norm_exp_sqrtdet')
+    log_p = tf.Print(log_p, [log_p], message='log p ')
+    log_p = tf.Print(log_p, [log_x_exp, log_x_norm], message='log p comps ')
     # make tensor for KL divergence from means and covariance vectors
     # following equation 6 from the VAE tutorial
     k = tf.to_float(k)
@@ -71,28 +50,34 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict):
     cov_0_det = tf.reduce_prod(cov_0, reduction_indices=[1], name='kl2')
     cov_z_det = tf.reduce_prod(cov_z, reduction_indices=[1], name='kl3')
     trace_term = tf.reduce_sum(tf.mul(cov_0_inv, cov_z), reduction_indices=[1], name='kl4')
+    # trace_term = tf.Print(trace_term, [mean_diff, cov_0_inv, mean_0, mean_z], message='md_ci_m0_mz ')
     square_term = tf.reduce_sum(tf.mul(tf.mul(mean_diff, cov_0_inv, name='kl5'),
                                        mean_diff, name='kl6'),
                                 reduction_indices=[1], name='kl7')
 
-    cov_z_det = tf.mul(cov_z_det, tf.to_float(10.0**20))  # quick fix: det^2 in derivative under-flows to 0 otherwise
-    cov_0_det2 = tf.mul(cov_0_det, tf.to_float(10.0**20))
-
-    temp = tf.div(cov_0_det2, cov_z_det, name='kl8')
-    log_term = tf.log(temp, name='kl9')
-    # log_term = tf.Print(log_term, [log_term], message="log_term")
+    # cov_z_det = tf.mul(cov_z_det, tf.to_float(10.0**20))  # quick fix: det^2 in derivative under-flows to 0 otherwise
+    # cov_0_det2 = tf.mul(cov_0_det, tf.to_float(10.0**20))
+    #
+    temp = tf.div(cov_0_det, cov_z_det, name='kl8')
+    # log_term = tf.log(temp, name='kl9')
+    log_term = tf.log(cov_0_det) - tf.log(cov_z_det)
     kl_div = tf.div(tf.add(tf.add(trace_term, square_term, name='kl10'),
                            tf.sub(log_term, k, name='kl11'), name='kl12'),
                     tf.to_float(2), name='kl_div')
-    # kl_div = tf.Print(kl_div, [kl_div], message="kl_div ")
-    # kl_div = tf.Print(kl_div, [tf.gradients(temp, [cov_z_det]), temp, cov_0_det, cov_z_det], message="grad ")
-
+    kl_div = tf.Print(kl_div, [kl_div], message="kl_div ")
+    # kl_div = tf.Print(kl_div, [tf.gradients(log_term, [cov_z_det]), temp, tf.log(cov_0_det), tf.log(cov_z_det)], message="grad ")
+    kl_div = tf.Print(kl_div, [trace_term, square_term, log_term], message="kl-comps ")
     # negative variational lower bound
     # (optimizer can only minimize - same as maximizing positive lower bound
     bound = tf.sub(kl_div, log_p, name='neg_lower_bound')
     # bound = tf.Print(bound, [bound], message='bound ')
     # average over samples
     bound = tf.reduce_mean(bound, name='avg_neg_lower_bound')
+    # grads = [tf.reduce_mean(k) for k in tf.gradients(bound, [mean_0, cov_0, mean_z, cov_z, mean_x, cov_x])]
+    # grads = [tf.reduce_mean(k) for k in tf.gradients(square_term, [mean_z])]
+    # grads.append(tf.reduce_mean(cov_0_inv))
+    # bound = tf.Print(bound, grads, message='bg ')
+    # bound = tf.Print(bound, tf.gradients(bound, [mean_z, cov_z]), message='bg ')
 
     return bound
 
@@ -107,11 +92,19 @@ def train(err_acc, learning_rate):
     # grads = [tf.clip_by_value(k, -0.01, 0.01) for k in tf.gradients(err_acc, tvars)]
     grads, _ = tf.clip_by_global_norm(tf.gradients(err_acc, tvars), 1)
 
-    abs_grads = [tf.abs(k) for k in grads]
+    # DEBUG
+    abs_grads = [tf.abs(k) for k in tf.gradients(err_acc, tvars) if k is not None]
     max_grads = [tf.reduce_max(k) for k in abs_grads]
     mean_grads = [tf.reduce_mean(k) for k in abs_grads]
-    grad_print = tf.Print(grads[0], max_grads, summarize=1, message='max_grads ')
-    grad_print = tf.Print(grad_print, mean_grads, summarize=1, message='mean_grads ')
+    grad_print = tf.Print(grads[0], max_grads, summarize=1, message='max_g ')
+    grad_print = tf.Print(grad_print, mean_grads, summarize=1, message='mean_g ')
+
+    abs_grads = [tf.abs(k) for k in grads if k is not None]
+    max_grads = [tf.reduce_max(k) for k in abs_grads]
+    mean_grads = [tf.reduce_mean(k) for k in abs_grads]
+    grad_print = tf.Print(grad_print, max_grads, summarize=1, message='max_g_c ')
+    grad_print = tf.Print(grad_print, mean_grads, summarize=1, message='mean_g_c ')
+
 
     train_op = optimizer.apply_gradients(zip(grads, tvars))
 
@@ -161,23 +154,11 @@ def generation(hid_pl, f_state, eps_z, eps_x, param_dict, fun_dict):
     pd = param_dict
     fd = fun_dict
 
-    phi_prior = fd['phi_prior'](hid_pl)
-    mean_0 = tf.slice(phi_prior, [0, 0], [pd['batch_size'], pd['n_latent']], name='mean_0')
-    cov_0 = tf.slice(phi_prior, [0, pd['n_latent']], [pd['batch_size'], pd['n_latent']], name='cov_0')
-    cov_0 = tf.nn.softplus(cov_0)
-
+    mean_0, cov_0 = fd['phi_prior'](hid_pl)
     z = tf.add(mean_0, tf.mul(cov_0, eps_z), name='z_vec')
-
     phi_z = fd['phi_z'](z)
-    phi_dec = fd['phi_dec'](phi_z, hid_pl)
-
-    mean_x = tf.slice(phi_dec, [0, 0], [pd['batch_size'], pd['n_latent']], name='mean_x')
-    cov_x = tf.slice(phi_dec, [0, pd['n_latent']], [pd['batch_size'], pd['n_latent']], name='cov_x')
-    cov_x = tf.add(cov_x, tf.to_float(0.1))  # quick fix: initializing cov_x too small gets log(0)s
-    cov_x = tf.nn.softplus(cov_x)
-
+    mean_x, cov_x = fd['phi_dec'](phi_z, hid_pl)
     x = tf.add(mean_x, tf.mul(cov_x, eps_x), name='z_vec')
-
     phi_x = fd['phi_x'](x)
 
     # f_theta being an rnn must be handled differently (maybe this inconsistency can be fixed later on)

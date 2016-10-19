@@ -74,9 +74,8 @@ def run_training(param_dict):
         loop_res = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
         tf.get_variable_scope().reuse_variables()
         loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
-                                 parallel_iterations=1,
-                                 swap_memory=False,
-                                 name='while_loop')
+                                 parallel_iterations=1,  # can probably drop these params
+                                 swap_memory=False)
         err_final = loop_res[2]
 
         # get the train_op
@@ -84,6 +83,10 @@ def run_training(param_dict):
 
         # make a batch dict generator with the given placeholder
         batch_dict = get_train_batch_dict_generator(data, x_pl, hid_pl, eps_z, pd)
+
+        tv = tf.trainable_variables()
+        tv_summary = [tf.reduce_mean(k) for k in tv]
+        tv_print = tf.Print(err_acc, tv_summary, message='tv ')
 
         # get a session
         with tf.Session() as sess:
@@ -117,7 +120,9 @@ def run_training(param_dict):
                     print('iteration ' + str(it + 1) +
                           ' error: ' + str(err) +
                           ' time: ' + str(time.time() - start_time))
-                    sess.run([grad_print], feed_dict=feed)
+                    sess.run([grad_print, tv_print], feed_dict=feed)
+
+
 
                 # occasionally save weights and log
                 if (it + 1) % pd['log_freq'] == 0 or (it + 1) == pd['max_iter']:

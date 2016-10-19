@@ -36,6 +36,9 @@ class NetGen:
         if params['nn_type'] == 'general_lstm':
             self.fd[name] = general_lstm(params, name)
 
+        if 'out2normal' in params and params['out2normal'] == True:
+            self.fd[name] = out_to_normal(self.fd[name], params)
+
     # concatenates several tensors into one input to existing nn of given name
     def weave_inputs(self, name):
         f = self.fd[name]
@@ -65,7 +68,7 @@ def general_mlp(input_tensor, params):
                                       initializer=tf.contrib.layers.xavier_initializer())
 
             biases = tf.get_variable(name=(name + '_b' + str(idx)), dtype=tf.float32,
-                                     initializer=(tf.zeros([layers[idx]]) + init_bias))
+                                     initializer=(tf.random_normal([layers[idx]], mean=init_bias)))
 
             if params['activation'] == 'relu':
                 last = tf.nn.relu(tf.matmul(last, weights) + biases)
@@ -90,6 +93,24 @@ def general_lstm(params, name):
             cells.append(tf.nn.rnn_cell.LSTMCell(layer))
     multi_cell = tf.nn.rnn_cell.MultiRNNCell(cells)
     return multi_cell
+
+
+def out_to_normal(net_fun, params):
+    dims = params['layers'][-1] / 2
+    name = params['name']
+
+    def f(in_pl):
+        with tf.name_scope(name):
+            net_out = net_fun(in_pl)
+            out_m = tf.slice(net_out, [0, 0], [-1, dims])
+            out_c = tf.slice(net_out, [0, dims], [-1, dims])
+            mean_weights = tf.get_variable(name + '_m', initializer=tf.random_normal([dims, dims], mean=0))
+            mean = tf.matmul(out_m, mean_weights)
+            # mean = tf.Print(mean, [mean, out_m, mean_weights, out_c], message=name + ' m ')
+            # mean = out_m
+            cov = tf.nn.softplus(out_c)
+            return mean, cov
+    return f
 
 
 def running_idx(start=0):

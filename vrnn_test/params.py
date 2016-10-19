@@ -4,7 +4,7 @@ PARAM_DICT = dict()
 PARAM_DICT['data_path'] = 'data/series2_1000n_20d_30t.npy'
 PARAM_DICT['log_path'] = 'data/logs/test1'
 PARAM_DICT['log_freq'] = 1000
-PARAM_DICT['print_freq'] = 10
+PARAM_DICT['print_freq'] = 25
 
 # specify global settings
 PARAM_DICT['num_batches'] = 50
@@ -37,14 +37,16 @@ PARAM_DICT['phi_prior'] = {'name': 'phi_prior',
                            'nn_type': 'general_mlp',
                            'activation': 'relu',
                            'layers': [n_ht, 50, 50, n_ms],
-                           'init_bias': 0.1
+                           'out2normal': True,
+                           'init_bias': 0.6
                            }
 
 PARAM_DICT['phi_enc'] = {'name': 'phi_enc',
                          'nn_type': 'general_mlp',
                          'activation': 'relu',
                          'layers': [phi_x_out + n_ht, 50, 50, n_ms],
-                         'init_bias': 0.1
+                         'out2normal': True,
+                         'init_bias': 0.6
                          }
 
 PARAM_DICT['phi_z'] = {'name': 'phi_z',
@@ -56,7 +58,8 @@ PARAM_DICT['phi_dec'] = {'name': 'phi_dec',
                          'nn_type': 'general_mlp',
                          'activation': 'relu',
                          'layers': [phi_z_out + n_ht, 50, 50, 2*n_out],
-                         'init_bias': 0.1
+                         'out2normal': True,
+                         'init_bias': 0.6
                          }
 
 PARAM_DICT['f_theta'] = {'name': 'f_theta',
