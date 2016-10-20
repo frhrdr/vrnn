@@ -1,17 +1,17 @@
 PARAM_DICT = dict()
 
 # data path
-PARAM_DICT['data_path'] = 'data/series2_1000n_20d_30t.npy'
-PARAM_DICT['log_path'] = 'data/logs/test1'
-PARAM_DICT['log_freq'] = 1000
+PARAM_DICT['data_path'] = 'data/series4_1000n_10d_10t.npy'
+PARAM_DICT['log_path'] = 'data/logs/test2'
+PARAM_DICT['log_freq'] = 100
 PARAM_DICT['print_freq'] = 25
 
 # specify global settings
 PARAM_DICT['num_batches'] = 50
 PARAM_DICT['batch_size'] = 20
-PARAM_DICT['data_dim'] = 20
+PARAM_DICT['data_dim'] = 10
 PARAM_DICT['n_latent'] = 32
-PARAM_DICT['seq_length'] = 30  # flexible?
+PARAM_DICT['seq_length'] = 10  # flexible?
 PARAM_DICT['learning_rate'] = 0.003
 PARAM_DICT['max_iter'] = 1000
 PARAM_DICT['hid_state_size'] = 31

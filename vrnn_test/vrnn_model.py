@@ -11,7 +11,7 @@ def inference(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict):
     phi_x = fd['phi_x'](in_pl)
     mean_0, cov_0 = fd['phi_prior'](hid_pl)
     mean_z, cov_z = fd['phi_enc'](phi_x, hid_pl)
-    z = tf.add(mean_z, tf.mul(cov_z, eps_z), name='z_vec')
+    z = tf.add(mean_z, tf.mul(tf.sqrt(cov_z), eps_z), name='z_vec')
     phi_z = fd['phi_z'](z)
     mean_x, cov_x = fd['phi_dec'](phi_z, hid_pl)
 
@@ -148,10 +148,10 @@ def generation(hid_pl, f_state, eps_z, eps_x, param_dict, fun_dict):
     fd = fun_dict
 
     mean_0, cov_0 = fd['phi_prior'](hid_pl)
-    z = tf.add(mean_0, tf.mul(cov_0, eps_z), name='z_vec')
+    z = tf.add(mean_0, tf.mul(tf.sqrt(cov_0), eps_z), name='z_vec')
     phi_z = fd['phi_z'](z)
     mean_x, cov_x = fd['phi_dec'](phi_z, hid_pl)
-    x = tf.add(mean_x, tf.mul(cov_x, eps_x), name='z_vec')
+    x = tf.add(mean_x, tf.mul(tf.sqrt(cov_x), eps_x), name='z_vec')
     phi_x = fd['phi_x'](x)
 
     # f_theta being an rnn must be handled differently (maybe this inconsistency can be fixed later on)

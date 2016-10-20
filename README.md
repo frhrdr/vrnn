@@ -1,20 +1,21 @@
-# generative_audio_vrnn
-done:
+# vrnn
+###done:
 
-build VAE, run on mnist
+- build VAE, run on mnist
+- build VRNN, test on artificial data-set
 
-in progress:
+###in progress:
 
-build VRNN, test on artificial data-set
+- set up read-then-generate model,
+- find appropriate data-set,
+- take look at data sets from rgp paper,
 
-to do:
+###to do:
 
-find appropriate data-set,
-try and get RGP implementation running,
-take look at data sets from rgp paper,
-
-next steps:
-think of decent model parameters, net sizes
-train for real
-run check
-parameter changes
+- try and get RGP implementation running,
+- think of decent model parameters, net sizes
+- train for real
+- run check
+- parameter changes
+- comparison
+- report

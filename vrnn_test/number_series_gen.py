@@ -15,6 +15,13 @@ def save_series2(number, dim, length, file_path):
     np.save(file_path, series)
 
 
+def save_series3(number, dim, length, file_path):
+    series = np.ndarray((length, number, dim))
+    for idx in range(number):
+        series[:, idx, :] = series3_gen(length, dim)
+    np.save(file_path, series)
+
+
 def load_series(file_path):
     return np.load(file_path)
 
@@ -117,6 +124,44 @@ def series2_check(series):
 
     norm = np.sum(score, 1).astype(np.float32)
     norm = np.maximum(norm, np.ones(norm.shape))
-    print(length, dim)
+    # print(length, dim)
     # return measured probabilities of 0 in each case. should be around [0.9 0.5 0.1  0.2 0.4 0.6]
     return score[:, 0].astype(np.float32) / norm
+
+
+def series3_gen(length, dim, val=5):
+    # dumbest one yet. for debugging
+    series = np.zeros((length, dim))
+    series[1:, :] = - val
+    series[1::2, 1::2] = val
+    series[2::2, ::2] = val
+
+    return series
+
+
+def series3_check(series):
+    series[series <= 0] = 0
+    series[series > 0] = 1
+    print(series)
+
+
+def series4_gen(length, dim, odds=0.5):
+    # version of 3 with probabilisms (TM)
+    series = series3_gen(length, dim)
+    s = np.zeros(series.shape)
+    rand = np.random.uniform(size=(length, dim))
+    s[(series <= 0) * (rand <= odds)] = -9
+    s[(series <= 0) * (rand > odds)] = 3
+    s[(series > 0) * (rand <= odds)] = 9
+    s[(series > 0) * (rand > odds)] = -3
+    return s
+
+
+def series4_check(series):
+    s = np.zeros(series.shape)
+    s[series <= -6] = 7
+    s[(series <= 6) * (series > 0)] = 1
+    s[series > 6] = 8
+    s[(series > -6) * (series <= 0)] = 0
+    print([np.sum(s == 6), np.sum(s == 1), np.sum(s == 8), np.sum(s == 7)])
+    print(s)
