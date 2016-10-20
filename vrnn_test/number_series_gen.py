@@ -1,10 +1,11 @@
 import numpy as np
 
 
-def save_series1(number, length, file_path):
-    series = np.ndarray((number, length))
+def save_series(number, length, dim, file_path, sidx):
+    s_list = [series1_gen, series2_gen, series3_gen, series4_gen, series5_gen]
+    series = np.ndarray((length, number, dim))
     for idx in range(number):
-        series[idx, :] = series1_gen(length)
+        series[:, idx, :] = s_list[sidx-1](length, dim)
     np.save(file_path, series)
 
 
@@ -22,6 +23,13 @@ def save_series3(number, dim, length, file_path):
     np.save(file_path, series)
 
 
+def save_series4(number, dim, length, file_path):
+    series = np.ndarray((length, number, dim))
+    for idx in range(number):
+        series[:, idx, :] = series4_gen(length, dim)
+    np.save(file_path, series)
+
+
 def load_series(file_path):
     return np.load(file_path)
 
@@ -33,7 +41,7 @@ def load_series(file_path):
 # 20%:  a_(n-2) + a_(n-4) mod 128
 # starts with 0 0 0 0
 # returns np.array
-def series1_gen(length):
+def series1_gen(length, dim):
     s = np.ndarray((length,), dtype=np.int16)
     s[:4] = 0
     for idx in range(4, length):
@@ -163,5 +171,47 @@ def series4_check(series):
     s[(series <= 6) * (series > 0)] = 1
     s[series > 6] = 8
     s[(series > -6) * (series <= 0)] = 0
-    print([np.sum(s == 6), np.sum(s == 1), np.sum(s == 8), np.sum(s == 7)])
+    print([np.sum(s == 0), np.sum(s == 1), np.sum(s == 8), np.sum(s == 7)])
     print(s)
+
+
+def series5_gen(length, dim):
+    # deterministic spin on s2
+    # on a circle, both closest neighbours are 1 -> 0
+    # barring this, if 3/6 rightmost neighbours are 1 -> 1
+    s = np.zeros((length, dim))
+    s[0, :] = (np.random.uniform(size=(dim,)) > 0.5)
+
+    for ti in range(1, length):
+        for di in range(dim):
+            if s[ti-1, di] == 1 and sum([s[ti-1, k % dim] for k in range(di-1, di+2)]) >= 3:
+                s[ti, di] = 0
+            elif s[ti-1, di] == 0 and sum([s[ti-1, k % dim] for k in range(di+1, di+7)]) >= 3:
+                s[ti, di] = 1
+            else:
+                s[ti, di] = s[ti-1, di]
+    return s
+
+
+def series5_check(series):
+    s = (series > 0.5)
+    dim = s.shape[1]
+    e = np.zeros((3,))  #0: 1 -> 0 rule ignored  1: 0 -> 1 rule ignored  2: random change
+    c = np.zeros((3,))
+    for ti in range(1, s.shape[0]):
+        for di in range(dim):
+            if s[ti-1, di] == 1 and sum([s[ti-1, k % dim] for k in range(di-1, di+2)]) >= 3:
+                c[0] += 1
+                if s[ti, di] == 1:
+                    e[0] += 1
+            elif s[ti-1, di] == 0 and sum([s[ti-1, k % dim] for k in range(di+1, di+7)]) >= 3:
+                c[1] += 1
+                if s[ti, di] == 0:
+                    e[1] += 1
+            else:
+                c[2] += 1
+                if s[ti, di] != s[ti-1, di]:
+                    e[2] += 1
+    print(e)
+    print(c)
+    return e, c

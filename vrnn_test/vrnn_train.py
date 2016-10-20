@@ -120,7 +120,7 @@ def run_training(param_dict):
                     print('iteration ' + str(it + 1) +
                           ' error: ' + str(err) +
                           ' time: ' + str(time.time() - start_time))
-                    sess.run([grad_print, tv_print], feed_dict=feed)
+                    # sess.run([grad_print, tv_print], feed_dict=feed)
 
 
 
