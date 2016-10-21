@@ -108,7 +108,12 @@ def out_to_normal(net_fun, params):
             mean = tf.matmul(out_m, mean_weights)
             # mean = tf.Print(mean, [mean, out_m, mean_weights, out_c], message=name + ' m ')
             # mean = out_m
-            cov = tf.nn.softplus(out_c)
+            cov_weights = tf.get_variable(name + '_c', initializer=tf.random_normal([dims, dims], mean=0, stddev=0.01))
+            cov = tf.nn.softplus(tf.matmul(out_c, cov_weights))
+            # cov = tf.exp(tf.matmul(out_c, cov_weights))
+            # cov = tf.nn.softplus(out_c)
+            # cov = tf.exp(out_c)
+            # cov = tf.Print(cov, [cov], message=name + '_c ')
             return mean, cov
     return f
 

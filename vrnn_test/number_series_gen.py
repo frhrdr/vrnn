@@ -1,38 +1,28 @@
 import numpy as np
 
 
-def save_series(number, length, dim, file_path, sidx):
-    s_list = [series1_gen, series2_gen, series3_gen, series4_gen, series5_gen]
+def save_series(number, length, dim, file_path, sid, noise=True, level=0.5):
+    s_list = [series1_gen, series2_gen, series3_gen,
+              series4_gen, series5_gen, series6_gen,
+              series7_gen]
     series = np.ndarray((length, number, dim))
     for idx in range(number):
-        series[:, idx, :] = s_list[sidx-1](length, dim)
-    np.save(file_path, series)
-
-
-def save_series2(number, dim, length, file_path):
-    series = np.ndarray((length, number, dim))
-    for idx in range(number):
-        series[:, idx, :] = series2_gen(length, dim)
-    np.save(file_path, series)
-
-
-def save_series3(number, dim, length, file_path):
-    series = np.ndarray((length, number, dim))
-    for idx in range(number):
-        series[:, idx, :] = series3_gen(length, dim)
-    np.save(file_path, series)
-
-
-def save_series4(number, dim, length, file_path):
-    series = np.ndarray((length, number, dim))
-    for idx in range(number):
-        series[:, idx, :] = series4_gen(length, dim)
+        si = s_list[sid-1](length, dim)
+        if noise:
+            si = add_noise(si, noise_stdev=level)
+        series[:, idx, :] = si
     np.save(file_path, series)
 
 
 def load_series(file_path):
     return np.load(file_path)
 
+
+def series_check(series, sid):
+    c_list = [series1_check, series2_check, series3_check,
+              series4_check, series5_check, series6_check,
+              series7_check]
+    c_list[sid-1](series)
 
 # integers 0 - 127
 # a_n :=
@@ -148,6 +138,7 @@ def series3_gen(length, dim, val=5):
 
 
 def series3_check(series):
+    print(np.round(series))
     series[series <= 0] = 0
     series[series > 0] = 1
     print(series)
@@ -215,3 +206,47 @@ def series5_check(series):
     print(e)
     print(c)
     return e, c
+
+
+def series6_gen(length, dim, val=5):
+    # spin on 3 with 0 fillers to test deeper memory
+    series = np.zeros((length, dim))
+    series[1:, :] = - val
+    series[1::4, 1::2] = val
+    series[3::4, ::2] = val
+    return series
+
+
+def series6_check(series):
+    s = np.zeros(series.shape)
+    s[series <= -2] = 0
+    s[series > 2] = 1
+    s[(series > -2) * (series <= 2)] = 8
+    print(s)
+
+
+def series7_gen(length, dim, odds=0.5):
+    # version of 4 that's not conflicting
+    series = series3_gen(length, dim)
+    s = np.zeros(series.shape)
+    rand = np.random.uniform(size=(length, dim))
+    s[(series <= 0) * (rand <= odds)] = 9
+    s[(series <= 0) * (rand > odds)] = 3
+    s[(series > 0) * (rand <= odds)] = -9
+    s[(series > 0) * (rand > odds)] = -3
+    return s
+
+
+def series7_check(series):
+    s = np.zeros(series.shape)
+    s[series > 6] = 9
+    s[(series <= 6) * (series > 0)] = 3
+    s[(series > -6) * (series <= 0)] = -3
+    s[series <= -6] = -9
+    print([np.sum(s == -9), np.sum(s == -3), np.sum(s == 3), np.sum(s == 9)])
+    print(s)
+    print(np.round(series))
+
+
+def add_noise(series, noise_stdev):
+    return series + np.random.normal(scale=noise_stdev, size=series.shape)

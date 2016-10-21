@@ -54,10 +54,9 @@ def run_training(param_dict):
 
     # get a graph
     with tf.Graph().as_default():
-
         # get the stop condition and loop function
         stop_fun = model.get_train_stop_fun(pd['seq_length'])
-        loop_fun = model.get_train_loop_fun(pd, netgen.fd)
+        loop_fun = model.get_train_loop_fun(pd, netgen.fd, pd['watchlist'])
 
         # define loop_vars: x_list, hid_pl, err_acc, count
         x_pl = tf.placeholder(tf.float32, name='x_pl',
@@ -120,9 +119,8 @@ def run_training(param_dict):
                     print('iteration ' + str(it + 1) +
                           ' error: ' + str(err) +
                           ' time: ' + str(time.time() - start_time))
-                    # sess.run([grad_print, tv_print], feed_dict=feed)
 
-
+                    sess.run([grad_print, tv_print], feed_dict=feed)
 
                 # occasionally save weights and log
                 if (it + 1) % pd['log_freq'] == 0 or (it + 1) == pd['max_iter']:

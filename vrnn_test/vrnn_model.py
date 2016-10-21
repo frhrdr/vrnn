@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 
-def inference(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict):
+def inference(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict, watchlist):
 
     # rename for brevity
     pd = param_dict
@@ -11,7 +11,7 @@ def inference(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict):
     phi_x = fd['phi_x'](in_pl)
     mean_0, cov_0 = fd['phi_prior'](hid_pl)
     mean_z, cov_z = fd['phi_enc'](phi_x, hid_pl)
-    z = tf.add(mean_z, tf.mul(tf.sqrt(cov_z), eps_z), name='z_vec')
+    z = mean_z + tf.sqrt(cov_z) * eps_z
     phi_z = fd['phi_z'](z)
     mean_x, cov_x = fd['phi_dec'](phi_z, hid_pl)
 
@@ -19,50 +19,46 @@ def inference(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict):
     f_in = tf.concat(1, [hid_pl, phi_x, phi_z], name='f_theta_joint_inputs')
     f_out, f_state = fd['f_theta'](f_in, f_state)
 
+    # DEBUG
     # f_out = tf.Print(f_out, [mean_0, cov_0, mean_z, cov_z, mean_x, cov_x], message="mc_0zx ")
 
     return mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, f_out, f_state
 
 
-def loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict):
+def loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict, watchlist):
 
     k = param_dict['n_latent']
     x_diff = x_target - mean_x
-    x_square = tf.reduce_sum(x_diff * cov_x * x_diff, reduction_indices=[1])
+    x_square = tf.reduce_sum((x_diff / cov_x) * x_diff, reduction_indices=[1])
     log_x_exp = -0.5 * x_square
-    cov_x_det = tf.reduce_prod(cov_x, reduction_indices=[1])
-    log_x_norm = -0.5 * (k * tf.log(2*np.pi) + tf.log(cov_x_det))
+    # cov_x_det = tf.reduce_prod(cov_x, reduction_indices=[1])
+    log_cov_x_det = tf.reduce_sum(tf.log(cov_x), reduction_indices=[1])
+    log_x_norm = -0.5 * (k * tf.log(2*np.pi) + log_cov_x_det)
     log_p = log_x_norm + log_x_exp
-    # log_p = tf.mul(x_norm, x_exp)  # chung doesn't take log here - maybe for stability
-    # log_p = tf.Print(log_p, [tf.reduce_mean(tf.gradients(log_p, [cov_x]))], message='glog')
-    # log_p = tf.Print(log_p, [tf.reduce_mean(tf.gradients(cov_x_det, [cov_x]))], message='gdet')
-    # log_p = tf.Print(log_p, [tf.reduce_mean(tf.gradients(log_x_exp, [cov_x]))], message='gexp')
-    # log_p = tf.Print(log_p, [tf.reduce_mean(tf.gradients(log_x_norm, [cov_x]))], message='gnorm')
-    # log_p = tf.Print(log_p, [log_x_norm, log_x_exp, cov_x_det], message='norm_exp_sqrtdet')
-    # log_p = tf.Print(log_p, [log_p], message='log p ')
+
+    # DEBUG
+    # log_p = tf.Print(log_p, [tf.reduce_max(log_p)], message='log p ')
     # log_p = tf.Print(log_p, [log_x_exp, log_x_norm, x_square, cov_x, x_diff], message='log p comps ')
 
     # make tensor for KL divergence from means and covariance vectors
     # following equation 6 from the VAE tutorial
-    k = tf.to_float(k)
     mean_diff = mean_0 - mean_z
     cov_0_inv = tf.inv(cov_0)
-    cov_0_det = tf.reduce_prod(cov_0, reduction_indices=[1])
-    cov_z_det = tf.reduce_prod(cov_z, reduction_indices=[1])
+    log_cov_0_det = tf.reduce_sum(tf.log(cov_0), reduction_indices=[1])
+    log_cov_z_det = tf.reduce_sum(tf.log(cov_z), reduction_indices=[1])
 
+    log_term = log_cov_0_det - log_cov_z_det
     trace_term = tf.reduce_sum(cov_0_inv * cov_z, reduction_indices=[1])
     square_term = tf.reduce_sum(mean_diff * cov_0_inv * mean_diff, reduction_indices=[1])
-    log_term = tf.log(cov_0_det) - tf.log(cov_z_det)
 
-    kl_div = tf.div(tf.add(tf.add(trace_term, square_term, name='kl10'),
-                           tf.sub(log_term, k, name='kl11'), name='kl12'),
-                    tf.to_float(2), name='kl_div')
-    # kl_div = tf.Print(kl_div, [kl_div], message="kl_div ")
+    kl_div = 0.5 * (trace_term + square_term - k + log_term)
+    # DEBUG
+    # kl_div = tf.Print(kl_div, [tf.reduce_min(kl_div)], message="kl_div ")
     # kl_div = tf.Print(kl_div, [trace_term, square_term, log_term], message="kl-comps ")
 
     # negative variational lower bound
     # (optimizer can only minimize - same as maximizing positive lower bound
-    bound = tf.sub(kl_div, log_p, name='neg_lower_bound')
+    bound = kl_div - log_p
     # bound = tf.Print(bound, [bound], message='bound ')
     # average over samples
     bound = tf.reduce_mean(bound, name='avg_neg_lower_bound')
@@ -82,7 +78,7 @@ def train(err_acc, learning_rate):
 
     tvars = tf.trainable_variables()
 
-    # grads = [tf.clip_by_value(k, -0.01, 0.01) for k in tf.gradients(err_acc, tvars)]
+    # grads = [tf.clip_by_value(k, -1, 1) for k in tf.gradients(err_acc, tvars)]
     grads, _ = tf.clip_by_global_norm(tf.gradients(err_acc, tvars), 1)
     # grads = [tf.clip_by_norm(k, 1) for k in tf.gradients(err_acc, tvars)]
 
@@ -105,7 +101,7 @@ def train(err_acc, learning_rate):
     return train_op, grad_print
 
 
-def train_loop(x_pl, hid_pl, err_acc, count, f_state, eps_z, param_dict, fun_dict):
+def train_loop(x_pl, hid_pl, err_acc, count, f_state, eps_z, param_dict, fun_dict, watchlist):
     # the dicts must be assigned before looping over a parameter subset (lambda) of this function
 
     # set x_pl to elem of list indexed by count
@@ -113,9 +109,9 @@ def train_loop(x_pl, hid_pl, err_acc, count, f_state, eps_z, param_dict, fun_dic
     eps_z_t = tf.squeeze(tf.slice(eps_z, [tf.to_int32(count), 0, 0], [1, -1, -1]))
     # build inference model
     mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, f_theta, f_state = inference(x_t, hid_pl, f_state, eps_z_t,
-                                                                              param_dict, fun_dict)
+                                                                              param_dict, fun_dict, watchlist)
     # build loss
-    step_error = loss(x_t, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict)
+    step_error = loss(x_t, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict, watchlist)
     # set hid_pl to result of f_theta
     hid_pl = f_theta
     # set err_acc to += error from this time-step
@@ -128,10 +124,10 @@ def train_loop(x_pl, hid_pl, err_acc, count, f_state, eps_z, param_dict, fun_dic
     return x_pl, hid_pl, err_acc, count, f_state, eps_z
 
 
-def get_train_loop_fun(param_dict, fun_dict):
+def get_train_loop_fun(param_dict, fun_dict, watchlist):
     # function wrapper to assign the dicts. return value can be looped with tf.while_loop
     def train_loop_fun(x_pl, hid_pl, err_acc, count, f_state, eps_z):
-        return train_loop(x_pl, hid_pl, err_acc, count, f_state, eps_z, param_dict, fun_dict)
+        return train_loop(x_pl, hid_pl, err_acc, count, f_state, eps_z, param_dict, fun_dict, watchlist)
     return train_loop_fun
 
 
@@ -148,15 +144,16 @@ def generation(hid_pl, f_state, eps_z, eps_x, param_dict, fun_dict):
     fd = fun_dict
 
     mean_0, cov_0 = fd['phi_prior'](hid_pl)
-    z = tf.add(mean_0, tf.mul(tf.sqrt(cov_0), eps_z), name='z_vec')
+    z = mean_0 + tf.sqrt(cov_0) * eps_z
     phi_z = fd['phi_z'](z)
     mean_x, cov_x = fd['phi_dec'](phi_z, hid_pl)
-    x = tf.add(mean_x, tf.mul(tf.sqrt(cov_x), eps_x), name='z_vec')
+    x = mean_x + tf.sqrt(cov_x) * eps_x
     phi_x = fd['phi_x'](x)
 
     # f_theta being an rnn must be handled differently (maybe this inconsistency can be fixed later on)
     f_in = tf.concat(1, [hid_pl, phi_x, phi_z], name='f_theta_joint_inputs')
     f_out, f_state = fd['f_theta'](f_in, f_state)
+    f_out = tf.Print(f_out, [mean_0, cov_0, mean_x, cov_x], message='mc_0x ')
     # f_out = fd['f_theta'](f_in)
     # f_out = tf.Print(f_out, f_state, message="f_state")
     # f_out = tf.Print(f_out, [f_out, f_in], message="f_out", summarize=10)
