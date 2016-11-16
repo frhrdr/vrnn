@@ -4,6 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from collections import defaultdict
 
+ACT_FUNCS = {'relu': tf.nn.relu,
+             'tanh': tf.nn.tanh,
+             'elu': tf.nn.elu
+            }
 
 class NetGen:
 
@@ -70,11 +74,22 @@ def general_mlp(input_tensor, params):
             biases = tf.get_variable(name=(name + '_b' + str(idx)), dtype=tf.float32,
                                      initializer=(tf.random_normal([layers[idx]], mean=init_bias)))
 
-            if params['activation'] == 'relu':
-                last = tf.nn.relu(tf.matmul(last, weights) + biases)
-            else:  # default to tanh
-                last = tf.nn.tanh(tf.matmul(last, weights) + biases)
+            act_key = 'relu'  # default
+            if 'activation' in params:
+                act_key = params['activation']
 
+            last = ACT_FUNCS[act_key](tf.matmul(last, weights) + biases)
+
+            if 'use_batch_norm' in params and params['use_batch_norm'] == True:
+                # bn_mean = tf.get_variable(name=(name + '_bn_mean' + str(idx)), dtype=tf.float32,
+                #                           initializer=(tf.random_normal([layers[idx]], mean=init_bias)))
+                # bn_var = tf.get_variable(name=(name + '_bn_var' + str(idx)), dtype=tf.float32,
+                #                          initializer=(tf.random_normal([layers[idx]], mean=init_bias)))
+                # offset = None
+                # scale = None
+                # eps = 0.00001
+                # last = tf.nn.batch_normalization(last, bn_mean, bn_var, offset, scale, eps)
+                last = tf.contrib.layers.batch_norm(last)
     return last
 
 

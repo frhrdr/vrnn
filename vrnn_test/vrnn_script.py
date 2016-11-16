@@ -4,7 +4,7 @@ from number_series_gen import *
 from params import PARAM_DICT
 import numpy as np
 
-mode = 2
+mode = 1
 
 if mode == 0:
     number = PARAM_DICT['num_batches'] * PARAM_DICT['batch_size']
