@@ -18,7 +18,7 @@ elif mode == 1:
 elif mode == 2:
     x = run_generation(PARAM_DICT['log_path'] + '/params.pkl')
     sid = PARAM_DICT['series']
-    for idx in range(3):
+    for idx in range(10):
         series_check(x[:, idx, :], sid)
 else:
     data = np.load(PARAM_DICT['data_path'])

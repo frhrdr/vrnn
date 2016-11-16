@@ -3,8 +3,8 @@ PARAM_DICT = dict()
 PARAM_DICT['watchlist'] = {'allmc': []}
 
 # data path
-PARAM_DICT['series'] = 7
-PARAM_DICT['data_path'] = 'data/series7_2000n_15t_4d.npy'
+PARAM_DICT['series'] = 2
+PARAM_DICT['data_path'] = 'data/series2_2000n_15t_10d.npy'
 PARAM_DICT['log_path'] = 'data/logs/test2'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 25
@@ -12,7 +12,7 @@ PARAM_DICT['print_freq'] = 25
 # specify global settings
 PARAM_DICT['num_batches'] = 50
 PARAM_DICT['batch_size'] = 40
-PARAM_DICT['data_dim'] = 4
+PARAM_DICT['data_dim'] = 10
 PARAM_DICT['n_latent'] = 32
 PARAM_DICT['seq_length'] = 15
 PARAM_DICT['learning_rate'] = 0.01

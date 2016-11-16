@@ -124,7 +124,7 @@ def series2_check(series):
     norm = np.maximum(norm, np.ones(norm.shape))
     # print(length, dim)
     # return measured probabilities of 0 in each case. should be around [0.9 0.5 0.1  0.2 0.4 0.6]
-    return score[:, 0].astype(np.float32) / norm
+    print score[:, 0].astype(np.float32) / norm
 
 
 def series3_gen(length, dim, val=5):
