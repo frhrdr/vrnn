@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 
-def inference(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict, watchlist):
+def vanilla_inference(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict, watchlist):
 
     # rename for brevity
     pd = param_dict
@@ -25,9 +25,7 @@ def inference(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict, watchlist):
     return mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, f_out, f_state
 
 
-def loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict, watchlist):
-
-    k = param_dict['n_latent']
+def gaussian_log_p(mean_x, cov_x, x_target, k):
     x_diff = x_target - mean_x
     x_square = tf.reduce_sum((x_diff / cov_x) * x_diff, reduction_indices=[1])
     log_x_exp = -0.5 * x_square
@@ -35,12 +33,13 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict, watc
     log_cov_x_det = tf.reduce_sum(tf.log(cov_x), reduction_indices=[1])
     log_x_norm = -0.5 * (k * tf.log(2*np.pi) + log_cov_x_det)
     log_p = log_x_norm + log_x_exp
-
     # DEBUG
     # log_p = tf.Print(log_p, [tf.reduce_max(log_p)], message='log p ')
     # log_p = tf.Print(log_p, [log_x_exp, log_x_norm, x_square, cov_x, x_diff], message='log p comps ')
+    return log_p
 
-    # make tensor for KL divergence from means and covariance vectors
+
+def gaussian_kl_div(mean_0, cov_0, mean_z, cov_z, k):
     # following equation 6 from the VAE tutorial
     mean_diff = mean_0 - mean_z
     cov_0_inv = tf.inv(cov_0)
@@ -55,13 +54,27 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict, watc
     # DEBUG
     # kl_div = tf.Print(kl_div, [tf.reduce_min(kl_div)], message="kl_div ")
     # kl_div = tf.Print(kl_div, [trace_term, square_term, log_term], message="kl-comps ")
+    return kl_div
+
+
+def vanilla_loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict, watchlist):
+
+    k = param_dict['n_latent']
+
+    log_p = gaussian_log_p(mean_x, cov_x, x_target, k)
+    kl_div = gaussian_kl_div(mean_0, cov_0, mean_z, cov_z, k)
 
     # negative variational lower bound
     # (optimizer can only minimize - same as maximizing positive lower bound
     bound = kl_div - log_p
+
+    # DEBUG
     # bound = tf.Print(bound, [bound], message='bound ')
+
     # average over samples
     bound = tf.reduce_mean(bound, name='avg_neg_lower_bound')
+
+    # DEBUG
     # grads = [tf.reduce_mean(k) for k in tf.gradients(bound, [mean_0, cov_0, mean_z, cov_z, mean_x, cov_x])]
     # grads = [tf.reduce_mean(k) for k in tf.gradients(square_term, [mean_z])]
     # grads.append(tf.reduce_mean(cov_0_inv))
@@ -108,10 +121,10 @@ def train_loop(x_pl, hid_pl, err_acc, count, f_state, eps_z, param_dict, fun_dic
     x_t = tf.squeeze(tf.slice(x_pl, [tf.to_int32(count), 0, 0], [1, -1, -1]))
     eps_z_t = tf.squeeze(tf.slice(eps_z, [tf.to_int32(count), 0, 0], [1, -1, -1]))
     # build inference model
-    mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, f_theta, f_state = inference(x_t, hid_pl, f_state, eps_z_t,
-                                                                              param_dict, fun_dict, watchlist)
+    mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, f_theta, f_state = vanilla_inference(x_t, hid_pl, f_state, eps_z_t,
+                                                                                      param_dict, fun_dict, watchlist)
     # build loss
-    step_error = loss(x_t, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict, watchlist)
+    step_error = vanilla_loss(x_t, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict, watchlist)
     # set hid_pl to result of f_theta
     hid_pl = f_theta
     # set err_acc to += error from this time-step
@@ -190,3 +203,45 @@ def get_gen_stop_fun(num_iter):
         count = args[2]
         return tf.less(count, num_iter)
     return gen_stop_fun
+
+
+def latent_gm_inference(in_pl, hid_pl, f_state, eps_z, eps_pi_z, param_dict, fun_dict, watchlist):
+
+    # rename for brevity
+    pd = param_dict
+    fd = fun_dict
+
+    phi_x = fd['phi_x'](in_pl)
+    means_0, covs_0, pis_0 = fd['phi_prior'](hid_pl)
+    means_z, covs_z, pis_z = fd['phi_enc'](phi_x, hid_pl)
+    # z = mean_z + tf.sqrt(cov_z) * eps_z
+    pi_sums = tf.accumulate_n(pis_z)
+    for mean, cov, pi, pi_sum in zip(means_z, covs_z, pis_z, pi_sums):
+        pass
+    phi_z = fd['phi_z'](z)
+    mean_x, cov_x = fd['phi_dec'](phi_z, hid_pl)
+
+    # f_theta being an rnn must be handled differently (maybe this inconsistency can be fixed later on)
+    f_in = tf.concat(1, [hid_pl, phi_x, phi_z], name='f_theta_joint_inputs')
+    f_out, f_state = fd['f_theta'](f_in, f_state)
+
+    # DEBUG
+    # f_out = tf.Print(f_out, [mean_0, cov_0, mean_z, cov_z, mean_x, cov_x], message="mc_0zx ")
+    raise NotImplementedError
+    return means_0, covs_0, pis_0, means_z, covs_z, pis_0, mean_x, cov_x, f_out, f_state
+
+
+def gaussian_mixture_kl_div_bound(means_0, covs_0, pis_0, means_z, covs_z, pis_z, k, param_dict):
+    # with matched bound approximation (13) in J Hershey, P Olsen:
+    # "Approximating the Kullback Leibler Divergence Between Gaussian Mixture Models"
+    kl_acc = tf.constant(0, dtype=tf.float32, shape=(param_dict['batch_size'],))
+
+    for mean_a, cov_a, pi_a, mean_b, cov_b, pi_b in zip(means_0, covs_0, pis_0, means_z, covs_z, pis_z):
+        kl_acc += pi_a * (tf.log(pi_a / pi_b) + gaussian_kl_div(mean_a, cov_a, mean_b, cov_b, k))
+
+    return kl_acc
+
+
+def gaussian_mixture_log_p():
+    raise NotImplementedError
+

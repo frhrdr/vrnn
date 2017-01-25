@@ -133,6 +133,40 @@ def out_to_normal(net_fun, params):
     return f
 
 
+def out_to_gm(net_fun, params):
+    out_size = params['layers'][-1]
+    name = params['name']
+    num_splits = params['splits']
+    dims = int(out_size / (2 * num_splits) - 0.5)
+
+    def f(in_pl):
+        with tf.name_scope(name):
+            net_out = net_fun(in_pl)
+
+            # slice output into [mean, cov, pi] chunks
+            means = []
+            covs = []
+            pis = []
+            for split in range(num_splits):
+                # each iteration uses 2*dims+1 outputs
+                offset = (2*dims+1) * split
+                out_m = tf.slice(net_out, [0, offset], [-1, dims])
+                out_c = tf.slice(net_out, [0, offset + dims], [-1, dims])
+                out_p = tf.slice(net_out, [0, offset + dims + 1], [-1, 1])
+                mean_weights = tf.get_variable(name + '_m', initializer=tf.random_normal([dims, dims], mean=0))
+                mean = tf.matmul(out_m, mean_weights)
+                means.append(mean)
+
+                cov_weights = tf.get_variable(name + '_c', initializer=tf.random_normal([dims, dims], mean=0, stddev=0.01))
+                cov = tf.nn.softplus(tf.matmul(out_c, cov_weights))
+                covs.append(cov)
+
+                pi = tf.nn.softplus(out_p)
+                pis.append(pi)
+            return means, covs, pis
+    return f
+
+
 def running_idx(start=0):
     a = start
     while True:
