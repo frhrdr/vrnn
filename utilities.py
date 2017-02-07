@@ -3,6 +3,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import defaultdict
+from tensorflow.contrib.slim import batch_norm
 
 ACT_FUNCS = {'relu': tf.nn.relu,
              'tanh': tf.nn.tanh,
@@ -89,7 +90,18 @@ def general_mlp(input_tensor, params):
                 # scale = None
                 # eps = 0.00001
                 # last = tf.nn.batch_normalization(last, bn_mean, bn_var, offset, scale, eps)
-                last = tf.contrib.layers.batch_norm(last)
+                last = batch_norm(last,
+                                  decay=0.999,
+                                  center=True,
+                                  scale=False,
+                                  epsilon=0.001,
+                                  moving_vars='moving_vars',
+                                  activation=None,
+                                  is_training=True,  # this actually necessitates a larger reworking.
+                                  trainable=True,
+                                  restore=True,
+                                  scope=None,
+                                  reuse=None)
     return last
 
 

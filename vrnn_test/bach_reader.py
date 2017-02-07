@@ -8,6 +8,7 @@ def bach_file_prep(file_dir='data/bach_choral/jsbach_chorals_harmony.data'):
         choral_names = {}
         chord_enc = {}
         chord_dec = {}  # not very elegant but works
+        chord_count = []
         data = []
         for line in content:
             line = line.rstrip()
@@ -42,10 +43,18 @@ def bach_file_prep(file_dir='data/bach_choral/jsbach_chorals_harmony.data'):
             if chord not in chord_enc:
                 chord_enc[chord] = len(chord_enc)
                 chord_dec[len(chord_dec)] = chord
+                chord_count.append(0)
             line[-1] = chord_enc[chord]
+            chord_count[chord_enc[chord]] += 1
 
             data.append(line)
 
         data = np.asarray(data, dtype=int)
-
+        l = sorted([(chord_count[k], chord_dec[k]) for k in range(len(chord_count))])[::-1]
+        acc = 0
+        for idx, i in enumerate(l):
+            acc += i[0]
+            print(i, acc, float(acc) / 5665, idx)
     return data, chord_enc, chord_dec
+
+bach_file_prep()
