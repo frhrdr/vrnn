@@ -107,7 +107,6 @@ def train(err_acc, learning_rate):
     mean_grads = [tf.reduce_mean(k) for k in abs_grads]
     grad_print = tf.Print(grad_print, max_grads, summarize=1, message='max_g_c ')
     grad_print = tf.Print(grad_print, mean_grads, summarize=1, message='mean_g_c ')
-    print([k.name for k in tvars])
     train_op = optimizer.apply_gradients(zip(grads, tvars))
 
     # train_op = optimizer.minimize(err_acc)  # , global_step=global_step)

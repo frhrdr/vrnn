@@ -10,26 +10,23 @@ from params import PARAM_DICT
 
 
 def get_train_batch_dict_generator(data, x_pl, hid_pl, eps_z, pd):
-    assert data.shape[1] % pd['num_batches'] == 0
-    s = data.shape[1] / pd['num_batches']
-    b = 0
+    end_idx = 0
     d = {}
     while True:
-        start_idx = s*b
-        end_idx = s*(b+1)
+        start_idx = end_idx
+        end_idx += pd['batch_size']
         if end_idx < data.shape[1]:
             d[x_pl] = data[:, start_idx:end_idx, :]  # input
         else:
             d1 = data[:, start_idx:, :]
             d2 = data[:, :(end_idx % data.shape[1]), :]
             d[x_pl] = np.concatenate((d1, d2), axis=1)
+            end_idx = end_idx % data.shape[1]
+
         d[hid_pl] = np.zeros((pd['batch_size'], pd['hid_state_size']))  # initial hidden state
         # 'fresh' noise for sampling
         d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['n_latent']))
         yield d
-        b += 1
-        if b == pd['num_batches']:
-            b = 0
 
 
 def run_training(param_dict):
@@ -78,7 +75,7 @@ def run_training(param_dict):
 
         # loop it
         loop_res = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
-        # tf.get_variable_scope().reuse_variables()
+
         with tf.variable_scope(tf.get_variable_scope(), reuse=True):
             loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
                                      parallel_iterations=1,  # can probably drop these params
@@ -128,7 +125,6 @@ def run_training(param_dict):
 
 
 def get_gen_batch_dict_generator(hid_pl, eps_z, eps_x, pd):
-    b = 0
     d = {}
     while True:
         d[hid_pl] = np.zeros((pd['batch_size'], pd['hid_state_size']))  # initial hidden state
@@ -136,9 +132,6 @@ def get_gen_batch_dict_generator(hid_pl, eps_z, eps_x, pd):
         d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['n_latent']))
         d[eps_x] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['data_dim']))
         yield d
-        b += 1
-        if b == pd['num_batches']:
-            b = 0
 
 
 def run_generation(params_file, ckpt_file=None, batch=None):
@@ -177,10 +170,11 @@ def run_generation(params_file, ckpt_file=None, batch=None):
 
         # loop it
         _ = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
-        tf.get_variable_scope().reuse_variables()  # quick fix - only needed for rnn. no idea why
-        loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
-                                 parallel_iterations=1,
-                                 swap_memory=False)
+
+        with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+            loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
+                                     parallel_iterations=1,
+                                     swap_memory=False)
         x_final = loop_res[0]
 
         batch_dict = get_gen_batch_dict_generator(hid_pl, eps_z, eps_x, pd)
@@ -268,10 +262,11 @@ def run_read_then_continue(params_file, read_seq, ckpt_file=None, batch_size=1):
         loop_vars = [x_pl, hid_pl, count, f_state, eps_z, eps_x]
 
         loop_fun(*loop_vars)
-        tf.get_variable_scope().reuse_variables()
-        loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
-                                 parallel_iterations=1,
-                                 swap_memory=False)
+
+        with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+            loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
+                                     parallel_iterations=1,
+                                     swap_memory=False)
         x_final = loop_res[0]
 
         feed = {eps_z: np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['n_latent'])),

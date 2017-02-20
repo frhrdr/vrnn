@@ -15,7 +15,6 @@ PARAM_DICT['split_latent'] = 1
 PARAM_DICT['split_out'] = 1
 
 # specify global settings
-PARAM_DICT['num_batches'] = 50
 PARAM_DICT['batch_size'] = 40
 PARAM_DICT['data_dim'] = 4
 PARAM_DICT['n_latent'] = 32
