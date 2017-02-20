@@ -5,7 +5,7 @@ from params import PARAM_DICT
 from iamondb_reader import mat_to_plot
 import numpy as np
 
-mode = 5
+mode = 1
 
 if mode == 0:  # create a number series according to specifications
     number = PARAM_DICT['num_batches'] * PARAM_DICT['batch_size']
