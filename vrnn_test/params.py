@@ -4,10 +4,10 @@ PARAM_DICT['watchlist'] = {'allmc': []}
 
 # data path
 PARAM_DICT['series'] = 7
-PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_50_xyonly.npy'
-PARAM_DICT['log_path'] = 'data/logs/handwriting/'
-PARAM_DICT['log_freq'] = 500
-PARAM_DICT['print_freq'] = 5
+PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_500_xyonly.npy'
+PARAM_DICT['log_path'] = 'data/logs/handwriting_01/'
+PARAM_DICT['log_freq'] = 100
+PARAM_DICT['print_freq'] = 200
 
 # (settle architecture: vanilla, gm_out, gm_latent, multinomial_out, gm_latent_multinomial_out)
 # other architectures put on halt
@@ -16,13 +16,13 @@ PARAM_DICT['split_latent'] = 1
 PARAM_DICT['split_out'] = 1
 
 # specify global settings
-PARAM_DICT['batch_size'] = 40
+PARAM_DICT['batch_size'] = 200
 PARAM_DICT['data_dim'] = 2
-PARAM_DICT['n_latent'] = 10
-PARAM_DICT['seq_length'] = 50
+PARAM_DICT['n_latent'] = 150
+PARAM_DICT['seq_length'] = 500
 PARAM_DICT['learning_rate'] = 0.01
-PARAM_DICT['max_iter'] = 500
-PARAM_DICT['hid_state_size'] = 31
+PARAM_DICT['max_iter'] = 15000
+PARAM_DICT['hid_state_size'] = 200
 
 # infer some necessary network sizes
 n_in = PARAM_DICT['data_dim']           # x
@@ -45,8 +45,8 @@ out_switch = {'vanilla': g_val, 'gm_out': gm_val, 'multinomial_out': n_out,
 n_out_stat = out_switch[PARAM_DICT['model']]
 
 # assign shared variables
-phi_x_out = 50
-phi_z_out = 80
+phi_x_out = 150
+phi_z_out = 200
 
 # specify each net
 PARAM_DICT['phi_x'] = {'name': 'phi_x',
@@ -90,4 +90,3 @@ PARAM_DICT['phi_dec'] = {'name': 'phi_dec',
 PARAM_DICT['f_theta'] = {'name': 'f_theta',
                          'nn_type': 'general_lstm',
                          'layers': [n_ht]}
-                         #'layers': [phi_x_out + phi_z_out, n_ht]}

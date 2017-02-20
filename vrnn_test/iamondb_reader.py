@@ -117,7 +117,7 @@ def load_and_cut_sequences(source_dir, seq_file='sequences.npy', idx_file='seque
 # parse_data_set('data/handwriting')
 # load_sequences('data/handwriting')
 # print(load_and_cut_sequences('data/handwriting').shape)
-# a = load_and_cut_sequences('data/handwriting', cut_len=50)
-# print(a.shape)
+a = load_and_cut_sequences('data/handwriting', cut_len=500)
+print(a.shape)
 
-# np.save('data/handwriting/rough_cut_50_xyonly.npy', a[:, :, :2])
+np.save('data/handwriting/rough_cut_500_xyonly.npy', a[:, :, :2])
