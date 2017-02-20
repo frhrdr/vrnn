@@ -83,17 +83,37 @@ def parse_data_set(target_dir, root_dir='data/handwriting/xml_data_root/lineStro
 def load_sequences(source_dir, seq_file='sequences.npy', idx_file='sequence_indices.npy'):
     seq_mat = np.load(source_dir + '/' + seq_file)
     idx_mat = np.load(source_dir + '/' + idx_file)
-    plt.hist(idx_mat, 50, normed=1, facecolor='green', alpha=0.75)
-    plt.show()
+    # plt.hist(idx_mat, 50, normed=1, facecolor='green', alpha=0.75)
+    # plt.show()
     for idx in range(1, idx_mat.shape[0]):
         idx_mat[idx] = idx_mat[idx] + idx_mat[idx - 1]
+
+    return seq_mat, idx_mat
+
+
+def load_and_cut_sequences(source_dir, seq_file='sequences.npy', idx_file='sequence_indices.npy', cut_len=500):
+    seq_mat, idx_mat = load_sequences(source_dir, seq_file, idx_file)
+
+    split_list = np.split(seq_mat, idx_mat[1:], axis=0)
+
+    for idx, mat in enumerate(split_list):
+        if mat.shape[0] < cut_len:
+            padded = np.zeros((cut_len, 3), dtype=float)
+            padded[:mat.shape[0], :] = mat
+            split_list[idx] = padded
+        else:
+            split_list[idx] = mat[:cut_len, :]
+
+    data_mat = np.asarray(split_list)
+    data_mat = np.swapaxes(data_mat, 0, 1)
+    return data_mat
 
 # a01-000u-01
 # a = xml_to_mat('data/handwriting/strokesu.xml')
 # mat_to_plot(a)
 # parse_data_set('data/handwriting')
-load_sequences('data/handwriting')
-
+#load_sequences('data/handwriting')
+print(load_and_cut_sequences('data/handwriting').shape)
 
 # to save:
 # assert stats.find('SensorLocation').attrib['corner'] == 'top_left'  # for now. can easily be addressed

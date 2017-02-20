@@ -16,7 +16,7 @@ def vanilla_inference(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict, watch
     mean_x, cov_x = fd['phi_dec'](phi_z, hid_pl)
 
     # f_theta being an rnn must be handled differently (maybe this inconsistency can be fixed later on)
-    f_in = tf.concat(1, [hid_pl, phi_x, phi_z], name='f_theta_joint_inputs')
+    f_in = tf.concat([hid_pl, phi_x, phi_z], axis=1, name='f_theta_joint_inputs')
     f_out, f_state = fd['f_theta'](f_in, f_state)
 
     # DEBUG
@@ -27,10 +27,10 @@ def vanilla_inference(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict, watch
 
 def gaussian_log_p(mean_x, cov_x, x_target, k):
     x_diff = x_target - mean_x
-    x_square = tf.reduce_sum((x_diff / cov_x) * x_diff, reduction_indices=[1])
+    x_square = tf.reduce_sum((x_diff / cov_x) * x_diff, axis=[1])
     log_x_exp = -0.5 * x_square
-    # cov_x_det = tf.reduce_prod(cov_x, reduction_indices=[1])
-    log_cov_x_det = tf.reduce_sum(tf.log(cov_x), reduction_indices=[1])
+    # cov_x_det = tf.reduce_prod(cov_x, axis=[1])
+    log_cov_x_det = tf.reduce_sum(tf.log(cov_x), axis=[1])
     log_x_norm = -0.5 * (k * tf.log(2*np.pi) + log_cov_x_det)
     log_p = log_x_norm + log_x_exp
     # DEBUG
@@ -42,13 +42,13 @@ def gaussian_log_p(mean_x, cov_x, x_target, k):
 def gaussian_kl_div(mean_0, cov_0, mean_z, cov_z, k):
     # following equation 6 from the VAE tutorial
     mean_diff = mean_0 - mean_z
-    cov_0_inv = tf.inv(cov_0)
-    log_cov_0_det = tf.reduce_sum(tf.log(cov_0), reduction_indices=[1])
-    log_cov_z_det = tf.reduce_sum(tf.log(cov_z), reduction_indices=[1])
+    cov_0_inv = tf.reciprocal(cov_0)
+    log_cov_0_det = tf.reduce_sum(tf.log(cov_0), axis=[1])
+    log_cov_z_det = tf.reduce_sum(tf.log(cov_z), axis=[1])
 
     log_term = log_cov_0_det - log_cov_z_det
-    trace_term = tf.reduce_sum(cov_0_inv * cov_z, reduction_indices=[1])
-    square_term = tf.reduce_sum(mean_diff * cov_0_inv * mean_diff, reduction_indices=[1])
+    trace_term = tf.reduce_sum(cov_0_inv * cov_z, axis=[1])
+    square_term = tf.reduce_sum(mean_diff * cov_0_inv * mean_diff, axis=[1])
 
     kl_div = 0.5 * (trace_term + square_term - k + log_term)
     # DEBUG
@@ -85,7 +85,7 @@ def vanilla_loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_di
 
 
 def train(err_acc, learning_rate):
-    tf.scalar_summary(err_acc.op.name, err_acc)
+    tf.summary.scalar(err_acc.op.name, err_acc)
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     # global_step = tf.Variable(0, name='global_step', trainable=False)
 
@@ -107,7 +107,7 @@ def train(err_acc, learning_rate):
     mean_grads = [tf.reduce_mean(k) for k in abs_grads]
     grad_print = tf.Print(grad_print, max_grads, summarize=1, message='max_g_c ')
     grad_print = tf.Print(grad_print, mean_grads, summarize=1, message='mean_g_c ')
-
+    print([k.name for k in tvars])
     train_op = optimizer.apply_gradients(zip(grads, tvars))
 
     # train_op = optimizer.minimize(err_acc)  # , global_step=global_step)

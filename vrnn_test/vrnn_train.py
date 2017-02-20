@@ -15,7 +15,14 @@ def get_train_batch_dict_generator(data, x_pl, hid_pl, eps_z, pd):
     b = 0
     d = {}
     while True:
-        d[x_pl] = data[:, s*b:s*(b+1), :]  # input
+        start_idx = s*b
+        end_idx = s*(b+1)
+        if end_idx < data.shape[1]:
+            d[x_pl] = data[:, start_idx:end_idx, :]  # input
+        else:
+            d1 = data[:, start_idx:, :]
+            d2 = data[:, :(end_idx % data.shape[1]), :]
+            d[x_pl] = np.concatenate((d1, d2), axis=1)
         d[hid_pl] = np.zeros((pd['batch_size'], pd['hid_state_size']))  # initial hidden state
         # 'fresh' noise for sampling
         d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['n_latent']))
@@ -71,10 +78,11 @@ def run_training(param_dict):
 
         # loop it
         loop_res = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
-        tf.get_variable_scope().reuse_variables()
-        loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
-                                 parallel_iterations=1,  # can probably drop these params
-                                 swap_memory=False)
+        # tf.get_variable_scope().reuse_variables()
+        with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+            loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
+                                     parallel_iterations=1,  # can probably drop these params
+                                     swap_memory=False)
         err_final = loop_res[2]
 
         # get the train_op
@@ -94,7 +102,7 @@ def run_training(param_dict):
             start_time = time.time()
 
             # run init variables op
-            init_op = tf.group(tf.initialize_all_variables(), tf.initialize_local_variables())
+            init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
             sess.run(init_op)
             saver = tf.train.Saver()
 

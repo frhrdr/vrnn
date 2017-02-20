@@ -50,7 +50,7 @@ class NetGen:
 
         def g(*args):
             # maybe make dimension (1) flexible later
-            in_pl = tf.concat(1, list(args), name=name + "_joint_inputs")
+            in_pl = tf.concat(list(args), axis=1, name=name + "_joint_inputs")
             return f(in_pl)
 
         self.fd[name] = g
@@ -117,8 +117,8 @@ def general_lstm(params, name):
     cells = []
     with tf.name_scope(name):
         for layer in layers:
-            cells.append(tf.nn.rnn_cell.LSTMCell(layer))
-    multi_cell = tf.nn.rnn_cell.MultiRNNCell(cells)
+            cells.append(tf.contrib.rnn.LSTMCell(layer))
+    multi_cell = tf.contrib.rnn.MultiRNNCell(cells)
     return multi_cell
 
 
@@ -141,7 +141,7 @@ def out_to_normal(net_fun, params):
             # cov = tf.nn.softplus(out_c)
             # cov = tf.exp(out_c)
             # cov = tf.Print(cov, [cov], message=name + '_c ')
-            return mean, cov
+        return mean, cov
     return f
 
 
@@ -175,7 +175,7 @@ def out_to_gm(net_fun, params):
 
                 pi = tf.nn.softplus(out_p)
                 pis.append(pi)
-            return means, covs, pis
+        return means, covs, pis
     return f
 
 
