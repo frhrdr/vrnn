@@ -16,7 +16,7 @@ def vanilla_inference(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict, watch
     mean_x, cov_x = fd['phi_dec'](phi_z, hid_pl)
 
     # f_theta being an rnn must be handled differently (maybe this inconsistency can be fixed later on)
-    f_in = tf.concat([hid_pl, phi_x, phi_z], axis=1, name='f_theta_joint_inputs')
+    f_in = tf.concat([phi_x, phi_z], axis=1, name='f_theta_joint_inputs')
     f_out, f_state = fd['f_theta'](f_in, f_state)
 
     # DEBUG
@@ -34,25 +34,24 @@ def gaussian_log_p(mean_x, cov_x, x_target, k):
     log_x_norm = -0.5 * (k * tf.log(2*np.pi) + log_cov_x_det)
     log_p = log_x_norm + log_x_exp
     # DEBUG
-    # log_p = tf.Print(log_p, [tf.reduce_max(log_p)], message='log p ')
+    log_p = tf.Print(log_p, [tf.reduce_max(log_p)], message='log p ')
     # log_p = tf.Print(log_p, [log_x_exp, log_x_norm, x_square, cov_x, x_diff], message='log p comps ')
     return log_p
 
 
-def gaussian_kl_div(mean_0, cov_0, mean_z, cov_z, k):
-    # following equation 6 from the VAE tutorial
-    mean_diff = mean_0 - mean_z
-    cov_0_inv = tf.reciprocal(cov_0)
+def gaussian_kl_div(mean_0, cov_0, mean_1, cov_1, k):
+    mean_diff = mean_1 - mean_0
+    cov_1_inv = tf.reciprocal(cov_1)
+    log_cov_1_det = tf.reduce_sum(tf.log(cov_1), axis=[1])
     log_cov_0_det = tf.reduce_sum(tf.log(cov_0), axis=[1])
-    log_cov_z_det = tf.reduce_sum(tf.log(cov_z), axis=[1])
 
-    log_term = log_cov_0_det - log_cov_z_det
-    trace_term = tf.reduce_sum(cov_0_inv * cov_z, axis=[1])
-    square_term = tf.reduce_sum(mean_diff * cov_0_inv * mean_diff, axis=[1])
+    log_term = log_cov_1_det - log_cov_0_det
+    trace_term = tf.reduce_sum(cov_1_inv * cov_0, axis=[1])
+    square_term = tf.reduce_sum(mean_diff * cov_1_inv * mean_diff, axis=[1])
 
     kl_div = 0.5 * (trace_term + square_term - k + log_term)
     # DEBUG
-    # kl_div = tf.Print(kl_div, [tf.reduce_min(kl_div)], message="kl_div ")
+    kl_div = tf.Print(kl_div, [tf.reduce_min(kl_div)], message="kl_div ")
     # kl_div = tf.Print(kl_div, [trace_term, square_term, log_term], message="kl-comps ")
     return kl_div
 
@@ -62,7 +61,7 @@ def vanilla_loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_di
     k = param_dict['n_latent']
 
     log_p = gaussian_log_p(mean_x, cov_x, x_target, k)
-    kl_div = gaussian_kl_div(mean_0, cov_0, mean_z, cov_z, k)
+    kl_div = gaussian_kl_div(mean_z, cov_z, mean_0, cov_0, k)
 
     # negative variational lower bound
     # (optimizer can only minimize - same as maximizing positive lower bound
@@ -108,7 +107,7 @@ def train(err_acc, learning_rate):
     grad_print = tf.Print(grad_print, max_grads, summarize=1, message='max_g_c ')
     grad_print = tf.Print(grad_print, mean_grads, summarize=1, message='mean_g_c ')
     train_op = optimizer.apply_gradients(zip(grads, tvars))
-
+    print([(k.name, k.get_shape()) for k in tvars])
     # train_op = optimizer.minimize(err_acc)  # , global_step=global_step)
     return train_op, grad_print
 
@@ -163,9 +162,9 @@ def generation(hid_pl, f_state, eps_z, eps_x, param_dict, fun_dict):
     phi_x = fd['phi_x'](x)
 
     # f_theta being an rnn must be handled differently (maybe this inconsistency can be fixed later on)
-    f_in = tf.concat(1, [hid_pl, phi_x, phi_z], name='f_theta_joint_inputs')
+    f_in = tf.concat([phi_x, phi_z], axis=1, name='f_theta_joint_inputs')
     f_out, f_state = fd['f_theta'](f_in, f_state)
-    f_out = tf.Print(f_out, [mean_0, cov_0, mean_x, cov_x], message='mc_0x ')
+    # f_out = tf.Print(f_out, [mean_0, cov_0, mean_x, cov_x], message='mc_0x ')
     # f_out = fd['f_theta'](f_in)
     # f_out = tf.Print(f_out, f_state, message="f_state")
     # f_out = tf.Print(f_out, [f_out, f_in], message="f_out", summarize=10)
@@ -183,7 +182,7 @@ def gen_loop(x_pl, hid_pl, count, f_state, eps_z, eps_x, param_dict, fun_dict):
     x_old = tf.slice(x_pl, [0, 0, 0], [tf.to_int32(count), -1, -1])
     x_empty = tf.slice(x_pl, [tf.to_int32(count) + 1, 0, 0], [-1, -1, -1])
     x_t = tf.reshape(x_t, [1, pd['batch_size'], pd['data_dim']])
-    x_pl = tf.concat(0, [x_old, x_t, x_empty])
+    x_pl = tf.concat([x_old, x_t, x_empty], axis=0)
     x_pl.set_shape([pd['seq_length'], pd['batch_size'], pd['data_dim']])
 
     count = tf.add(count, 1)
@@ -221,7 +220,7 @@ def latent_gm_inference(in_pl, hid_pl, f_state, eps_z, eps_pi_z, param_dict, fun
     mean_x, cov_x = fd['phi_dec'](phi_z, hid_pl)
 
     # f_theta being an rnn must be handled differently (maybe this inconsistency can be fixed later on)
-    f_in = tf.concat(1, [hid_pl, phi_x, phi_z], name='f_theta_joint_inputs')
+    f_in = tf.concat([phi_x, phi_z], axis=1, name='f_theta_joint_inputs')
     f_out, f_state = fd['f_theta'](f_in, f_state)
 
     # DEBUG

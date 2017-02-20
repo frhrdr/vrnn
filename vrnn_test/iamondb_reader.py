@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def xml_to_mat(xml_path, interpolate=False, max_dist=300):
 
     if interpolate:
@@ -43,7 +44,9 @@ def mat_to_plot(mat):
 
     stroke_ends = np.argwhere(mat[:, 2])  # single out individual strokes
     begin = 0
+    print(stroke_ends)
     for end in stroke_ends:
+        print(end)
         end = int(end)
         plt.axis('equal')
         plt.plot(mat[begin:end, 0], mat[begin:end, 1], c='blue')
@@ -64,8 +67,8 @@ def parse_data_set(target_dir, root_dir='data/handwriting/xml_data_root/lineStro
     print(matches[0])
 
     mat_list = []
-    for file in matches:
-        mat = xml_to_mat(file)
+    for f in matches:
+        mat = xml_to_mat(f)
         mat_list.append(mat)
         if len(mat_list) % 100 == 0:
             print('loaded ' + str(len(mat_list)) + '/' + str(len(matches)) + ' files')
@@ -112,38 +115,9 @@ def load_and_cut_sequences(source_dir, seq_file='sequences.npy', idx_file='seque
 # a = xml_to_mat('data/handwriting/strokesu.xml')
 # mat_to_plot(a)
 # parse_data_set('data/handwriting')
-#load_sequences('data/handwriting')
-print(load_and_cut_sequences('data/handwriting').shape)
+# load_sequences('data/handwriting')
+# print(load_and_cut_sequences('data/handwriting').shape)
+# a = load_and_cut_sequences('data/handwriting', cut_len=50)
+# print(a.shape)
 
-# to save:
-# assert stats.find('SensorLocation').attrib['corner'] == 'top_left'  # for now. can easily be addressed
-#     sensor_location = stats.find('SensorLocation').attrib['corner']
-#     sensor_location = sensor_location.split('_')
-#
-#     x_min = int(stats.find('VerticallyOppositeCoords').attrib['x'])
-#     x_max = int(stats.find('DiagonallyOppositeCoords').attrib['x'])
-#     y_min = int(stats.find('HorizontallyOppositeCoords').attrib['y'])
-#     y_max = int(stats.find('DiagonallyOppositeCoords').attrib['x'])
-#
-#     stroke_set = root.find('StrokeSet')
-#     stroke_mat_list = []
-#     for stroke in stroke_set:
-#         point_list = []
-#         for point in stroke:
-#             coords = (point.attrib['x'], point.attrib['y'], 0)
-#             point_list.append(coords)
-#         stroke_mat = np.asarray(point_list, dtype=int)
-#         stroke_mat[:, 0] = stroke_mat[:, 0] - x_min
-#         stroke_mat[:, 1] = stroke_mat[:, 1] - y_min
-#         stroke_mat[-1, 2] = 1  # mark end of character
-#
-#         z = np.zeros(stroke_mat.shape[0],)
-#         x_check_mat = (stroke_mat[:, 0] >= z) * (stroke_mat[:, 0] <= (z + x_max - x_min))
-#         y_check_mat = (stroke_mat[:, 1] >= z) * (stroke_mat[:, 1] <= (z + y_max - y_min))
-#         check_mat = x_check_mat * y_check_mat
-#         if not np.all(check_mat):
-#             raise ValueError('Values out of bounds')
-#
-#         stroke_mat_list.append(stroke_mat)
-#
-#     mat = np.concatenate(stroke_mat_list, axis=0)
+# np.save('data/handwriting/rough_cut_50_xyonly.npy', a[:, :, :2])

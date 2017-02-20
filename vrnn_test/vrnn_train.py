@@ -110,12 +110,13 @@ def run_training(param_dict):
                 # run train_op
                 _, err = sess.run([train_op, err_final], feed_dict=feed)
 
-                if (it + 1) % pd['print_freq'] == 0:
+                if (pd['print_freq'] > 0) and (it + 1) % pd['print_freq'] == 0:
 
                     print('iteration ' + str(it + 1) +
                           ' error: ' + str(err) +
                           ' time: ' + str(time.time() - start_time))
 
+                    # DEBUG
                     sess.run([grad_print, tv_print], feed_dict=feed)
 
                 # occasionally save weights and log
@@ -141,6 +142,7 @@ def run_generation(params_file, ckpt_file=None, batch=None):
     # set default checkpoint file
     if ckpt_file is None:
         ckpt_file = pd['log_path'] + '/ckpt-' + str(pd['max_iter'])
+
     # set custom number of generated samples (not entirely sure this will work)
     if batch is not None:
         pd['batch_size'] = batch
@@ -178,11 +180,12 @@ def run_generation(params_file, ckpt_file=None, batch=None):
         x_final = loop_res[0]
 
         batch_dict = get_gen_batch_dict_generator(hid_pl, eps_z, eps_x, pd)
-
+        print([(k.name, k.get_shape()) for k in tf.trainable_variables()])
         with tf.Session() as sess:
             # load weights
             saver = tf.train.Saver()
-            saver.restore(sess, ckpt_file)
+            saver.restore(sess, 'data/logs/handwriting/ckpt-500')
+            # saver.restore(sess, ckpt_file)
 
             feed = batch_dict.next()
             # run generative model as desired
