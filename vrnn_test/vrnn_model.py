@@ -70,8 +70,16 @@ def vanilla_loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_di
     # DEBUG
     # bound = tf.Print(bound, [bound], message='bound ')
 
-    # average over samples
-    bound = tf.reduce_mean(bound, name='avg_neg_lower_bound')
+    if param_dict['masking']:
+        print(x_target.get_shape())
+        zero_vals = tf.abs(x_target - tf.constant(param_dict['mask_value']))
+        mask = tf.sign(tf.reduce_max(zero_vals, axis=1))
+        num_live_samples = tf.reduce_sum(mask, axis=0)
+        bound *= mask
+        bound = tf.reduce_sum(bound, name='avg_neg_lower_bound') / num_live_samples
+    else:
+        # average over samples
+        bound = tf.reduce_mean(bound, name='avg_neg_lower_bound')
 
     # DEBUG
     # grads = [tf.reduce_mean(k) for k in tf.gradients(bound, [mean_0, cov_0, mean_z, cov_z, mean_x, cov_x])]
@@ -149,6 +157,16 @@ def get_train_stop_fun(num_iter):
     return train_stop_fun
 
 
+
+
+
+
+
+
+
+
+
+
 def generation(hid_pl, f_state, eps_z, eps_x, param_dict, fun_dict):
     # rename for brevity
     pd = param_dict
@@ -201,6 +219,25 @@ def get_gen_stop_fun(num_iter):
         count = args[2]
         return tf.less(count, num_iter)
     return gen_stop_fun
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def latent_gm_inference(in_pl, hid_pl, f_state, eps_z, eps_pi_z, param_dict, fun_dict, watchlist):

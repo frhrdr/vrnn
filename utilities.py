@@ -41,8 +41,15 @@ class NetGen:
         if params['nn_type'] == 'general_lstm':
             self.fd[name] = general_lstm(params, name)
 
-        if 'out2normal' in params and params['out2normal'] == True:
-            self.fd[name] = out_to_normal(self.fd[name], params)
+        if 'out2dist' in params:
+            if params['out2dist'] == 'normal':
+                self.fd[name] = out_to_normal(self.fd[name], params)
+            if params['out2dist'] == 'normal_split':
+                self.fd[name] = out_to_normal_split(self.fd[name], params)
+            elif params['out2dist'] == 'normal_plus_binary':
+                self.fd[name] = out_to_normal_plus_binary(self.fd[name], params)
+            elif params['out2dist'] == 'gmm':
+                self.fd[name] = out_to_gm(self.fd[name], params)
 
     # concatenates several tensors into one input to existing nn of given name
     def weave_inputs(self, name):
@@ -123,6 +130,22 @@ def general_lstm(params, name):
 
 
 def out_to_normal(net_fun, params):
+    d_dist = params['dist_dim']
+    d_out = params['layers'][-1]
+    name = params['name']
+
+    def f(in_pl):
+        with tf.name_scope(name):
+            net_out = net_fun(in_pl)
+            mean_weights = tf.get_variable(name + '_m', initializer=tf.random_normal([d_out, d_dist], mean=0))
+            mean = tf.matmul(net_out, mean_weights)
+            cov_weights = tf.get_variable(name + '_c', initializer=tf.random_normal([d_out, d_dist], mean=0, stddev=0.01))
+            cov = tf.nn.softplus(tf.matmul(net_out, cov_weights))
+        return mean, cov
+    return f
+
+
+def out_to_normal_split(net_fun, params):  # now old
     dims = params['layers'][-1] / 2
     name = params['name']
 
@@ -142,6 +165,24 @@ def out_to_normal(net_fun, params):
             # cov = tf.exp(out_c)
             # cov = tf.Print(cov, [cov], message=name + '_c ')
         return mean, cov
+    return f
+
+
+def out_to_normal_plus_binary(net_fun, params):
+    d_dist = params['dist_dim']
+    d_out = params['layers'][-1]
+    name = params['name']
+
+    def f(in_pl):
+        with tf.name_scope(name):
+            net_out = net_fun(in_pl)
+            mean_weights = tf.get_variable(name + '_m', initializer=tf.random_normal([d_out, d_dist], mean=0))
+            mean = tf.matmul(net_out, mean_weights)
+            cov_weights = tf.get_variable(name + '_c', initializer=tf.random_normal([d_out, d_dist], mean=0, stddev=0.01))
+            cov = tf.nn.softplus(tf.matmul(net_out, cov_weights))
+            bin_weights = tf.get_variable(name + '_bin', initializer=tf.random_normal([d_out, 1], mean=0, stddev=0.01))
+            binary = tf.nn.tanh(tf.matmul(net_out, bin_weights))
+        return mean, cov, binary
     return f
 
 

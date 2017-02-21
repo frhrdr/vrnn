@@ -94,14 +94,14 @@ def load_sequences(source_dir, seq_file='sequences.npy', idx_file='sequence_indi
     return seq_mat, idx_mat
 
 
-def load_and_cut_sequences(source_dir, seq_file='sequences.npy', idx_file='sequence_indices.npy', cut_len=500):
+def load_and_cut_sequences(source_dir, seq_file='sequences.npy', idx_file='sequence_indices.npy', cut_len=500, pad_value=500):
     seq_mat, idx_mat = load_sequences(source_dir, seq_file, idx_file)
 
     split_list = np.split(seq_mat, idx_mat[1:], axis=0)
 
     for idx, mat in enumerate(split_list):
         if mat.shape[0] < cut_len:
-            padded = np.zeros((cut_len, 3), dtype=float)
+            padded = np.zeros((cut_len, 3), dtype=float) + pad_value
             padded[:mat.shape[0], :] = mat
             split_list[idx] = padded
         else:
@@ -111,13 +111,24 @@ def load_and_cut_sequences(source_dir, seq_file='sequences.npy', idx_file='seque
     data_mat = np.swapaxes(data_mat, 0, 1)
     return data_mat
 
+
+def no_values_check(val):
+    seq, idx = load_sequences('data/handwriting')
+    seq = seq[:, :2]
+    seq = (seq == val)
+    seq = np.sum(seq, 1)
+    print(np.sum(seq))
+    print(np.sum(seq == 2*val))
+
+# no_values_check(500)
+
 # a01-000u-01
 # a = xml_to_mat('data/handwriting/strokesu.xml')
 # mat_to_plot(a)
 # parse_data_set('data/handwriting')
 # load_sequences('data/handwriting')
 # print(load_and_cut_sequences('data/handwriting').shape)
-#a = load_and_cut_sequences('data/handwriting', cut_len=500)
+a = load_and_cut_sequences('data/handwriting', cut_len=500)
 # print(a.shape)
 #
-# np.save('data/handwriting/rough_cut_500_xyonly.npy', a[:, :, :2])
+np.save('data/handwriting/rough_cut_500_pad_500_max_300_xyonly.npy', a[:, :, :2])

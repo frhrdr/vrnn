@@ -23,6 +23,8 @@ PARAM_DICT['seq_length'] = 500
 PARAM_DICT['learning_rate'] = 0.01
 PARAM_DICT['max_iter'] = 15000
 PARAM_DICT['hid_state_size'] = 200
+PARAM_DICT['masking'] = True
+PARAM_DICT['mask_value'] = 500
 
 # infer some necessary network sizes
 n_in = PARAM_DICT['data_dim']           # x
@@ -58,19 +60,21 @@ PARAM_DICT['phi_prior'] = {'name': 'phi_prior',
                            'nn_type': 'general_mlp',
                            'activation': 'relu',
                            'layers': [n_ht, n_latent_stat],
-                           'out2normal': True,
+                           'out2dist': 'normal',
                            'init_bias': 0.0,
                            'use_batch_norm': False,
-                           'splits': PARAM_DICT['split_latent']
+                           'splits': PARAM_DICT['split_latent'],
+                           'dist_dim': n_z
                            }
 
 PARAM_DICT['phi_enc'] = {'name': 'phi_enc',
                          'nn_type': 'general_mlp',
                          'activation': 'elu',
                          'layers': [phi_x_out + n_ht, n_latent_stat],
-                         'out2normal': True,
+                         'out2dist': 'normal',
                          'init_bias': 0.0,
-                         'splits': PARAM_DICT['split_latent']
+                         'splits': PARAM_DICT['split_latent'],
+                         'dist_dim': n_z
                          }
 
 PARAM_DICT['phi_z'] = {'name': 'phi_z',
@@ -82,9 +86,10 @@ PARAM_DICT['phi_dec'] = {'name': 'phi_dec',
                          'nn_type': 'general_mlp',
                          'activation': 'elu',
                          'layers': [phi_z_out + n_ht, n_out_stat],
-                         'out2normal': True,
+                         'out2dist': 'normal',
                          'init_bias': 0.0,
-                         'splits': PARAM_DICT['split_out']
+                         'splits': PARAM_DICT['split_out'],
+                         'dist_dim': n_out
                          }
 
 PARAM_DICT['f_theta'] = {'name': 'f_theta',
