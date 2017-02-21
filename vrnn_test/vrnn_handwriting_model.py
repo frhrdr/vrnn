@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from vrnn_model import gaussian_kl_div, gaussian_log_p, train
+from vrnn_model import gaussian_kl_div, gaussian_log_p, train, vanilla_loss
 
 
 def inference_plus_binary(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict, watchlist):
@@ -23,19 +23,29 @@ def inference_plus_binary(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict, w
     # DEBUG
     # f_out = tf.Print(f_out, [mean_0, cov_0, mean_z, cov_z, mean_x, cov_x], message="mc_0zx ")
 
-    return mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, f_out, f_state
+    return mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, bin_x, f_out, f_state
 
 
-def loss_plus_binary_CE(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict, watchlist):
+def loss_plus_binary_CE(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, bin_x, param_dict, watchlist):
 
     # split off last feature as binary
-    gauss, binary = tf.slice(x_pl, [tf.to_int32(count), 0, 0], [1, -1, -1])
+    x_target, bin_target = tf.split(x_target, [param_dict['data_dim'] - 1, 1])
 
     # compute binary CE
-
+    ce_loss = bin_target * tf.log(bin_x) + (1 - bin_target) * tf.log(1 - bin_x)
     # take masking into account
-
+    if param_dict['masking']:
+        mask = tf.abs(bin_target - tf.constant(param_dict['mask_value']))
+        # mask = tf.sign(tf.reduce_max(zero_vals, axis=1))
+        num_live_samples = tf.reduce_sum(mask, axis=0)
+        ce_loss *= mask
+        bound = tf.reduce_sum(ce_loss, name='avg_neg_lower_bound') / num_live_samples
+    else:
+        # average over samples
+        ce_loss = tf.reduce_mean(ce_loss, name='avg_neg_lower_bound')
     # compute and add loss for rest
-
+    bound = vanilla_loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict, watchlist)
     # return bound
+    bound += ce_loss
+
     return bound

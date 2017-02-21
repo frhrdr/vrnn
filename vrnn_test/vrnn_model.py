@@ -72,7 +72,7 @@ def vanilla_loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_di
 
     if param_dict['masking']:
         print(x_target.get_shape())
-        zero_vals = tf.abs(x_target - tf.constant(param_dict['mask_value']))
+        zero_vals = tf.abs(x_target - tf.constant(param_dict['mask_value'], dtype=tf.float32))
         mask = tf.sign(tf.reduce_max(zero_vals, axis=1))
         num_live_samples = tf.reduce_sum(mask, axis=0)
         bound *= mask
@@ -240,43 +240,43 @@ def get_gen_stop_fun(num_iter):
 
 
 
-def latent_gm_inference(in_pl, hid_pl, f_state, eps_z, eps_pi_z, param_dict, fun_dict, watchlist):
-
-    # rename for brevity
-    pd = param_dict
-    fd = fun_dict
-
-    phi_x = fd['phi_x'](in_pl)
-    means_0, covs_0, pis_0 = fd['phi_prior'](hid_pl)
-    means_z, covs_z, pis_z = fd['phi_enc'](phi_x, hid_pl)
-    # z = mean_z + tf.sqrt(cov_z) * eps_z
-    pi_sums = tf.accumulate_n(pis_z)
-    for mean, cov, pi, pi_sum in zip(means_z, covs_z, pis_z, pi_sums):
-        pass
-    phi_z = fd['phi_z'](z)
-    mean_x, cov_x = fd['phi_dec'](phi_z, hid_pl)
-
-    # f_theta being an rnn must be handled differently (maybe this inconsistency can be fixed later on)
-    f_in = tf.concat([phi_x, phi_z], axis=1, name='f_theta_joint_inputs')
-    f_out, f_state = fd['f_theta'](f_in, f_state)
-
-    # DEBUG
-    # f_out = tf.Print(f_out, [mean_0, cov_0, mean_z, cov_z, mean_x, cov_x], message="mc_0zx ")
-    raise NotImplementedError
-    return means_0, covs_0, pis_0, means_z, covs_z, pis_0, mean_x, cov_x, f_out, f_state
-
-
-def gaussian_mixture_kl_div_bound(means_0, covs_0, pis_0, means_z, covs_z, pis_z, k, param_dict):
-    # with matched bound approximation (13) in J Hershey, P Olsen:
-    # "Approximating the Kullback Leibler Divergence Between Gaussian Mixture Models"
-    kl_acc = tf.constant(0, dtype=tf.float32, shape=(param_dict['batch_size'],))
-
-    for mean_a, cov_a, pi_a, mean_b, cov_b, pi_b in zip(means_0, covs_0, pis_0, means_z, covs_z, pis_z):
-        kl_acc += pi_a * (tf.log(pi_a / pi_b) + gaussian_kl_div(mean_a, cov_a, mean_b, cov_b, k))
-
-    return kl_acc
-
-
-def gaussian_mixture_log_p():
-    raise NotImplementedError
-
+# def latent_gm_inference(in_pl, hid_pl, f_state, eps_z, eps_pi_z, param_dict, fun_dict, watchlist):
+#
+#     # rename for brevity
+#     pd = param_dict
+#     fd = fun_dict
+#
+#     phi_x = fd['phi_x'](in_pl)
+#     means_0, covs_0, pis_0 = fd['phi_prior'](hid_pl)
+#     means_z, covs_z, pis_z = fd['phi_enc'](phi_x, hid_pl)
+#     z = mean_z + tf.sqrt(cov_z) * eps_z
+#     pi_sums = tf.accumulate_n(pis_z)
+#     for mean, cov, pi, pi_sum in zip(means_z, covs_z, pis_z, pi_sums):
+#         pass
+#     phi_z = fd['phi_z'](z)
+#     mean_x, cov_x = fd['phi_dec'](phi_z, hid_pl)
+#
+#     # f_theta being an rnn must be handled differently (maybe this inconsistency can be fixed later on)
+#     f_in = tf.concat([phi_x, phi_z], axis=1, name='f_theta_joint_inputs')
+#     f_out, f_state = fd['f_theta'](f_in, f_state)
+#
+#     # DEBUG
+#     # f_out = tf.Print(f_out, [mean_0, cov_0, mean_z, cov_z, mean_x, cov_x], message="mc_0zx ")
+#     raise NotImplementedError
+#     return means_0, covs_0, pis_0, means_z, covs_z, pis_0, mean_x, cov_x, f_out, f_state
+#
+#
+# def gaussian_mixture_kl_div_bound(means_0, covs_0, pis_0, means_z, covs_z, pis_z, k, param_dict):
+#     # with matched bound approximation (13) in J Hershey, P Olsen:
+#     # "Approximating the Kullback Leibler Divergence Between Gaussian Mixture Models"
+#     kl_acc = tf.constant(0, dtype=tf.float32, shape=(param_dict['batch_size'],))
+#
+#     for mean_a, cov_a, pi_a, mean_b, cov_b, pi_b in zip(means_0, covs_0, pis_0, means_z, covs_z, pis_z):
+#         kl_acc += pi_a * (tf.log(pi_a / pi_b) + gaussian_kl_div(mean_a, cov_a, mean_b, cov_b, k))
+#
+#     return kl_acc
+#
+#
+# def gaussian_mixture_log_p():
+#     raise NotImplementedError
+#
