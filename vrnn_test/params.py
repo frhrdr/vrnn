@@ -6,8 +6,8 @@ PARAM_DICT['watchlist'] = {'allmc': []}
 PARAM_DICT['series'] = 7
 PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_50_pad_500_max_300_xyonly.npy'
 PARAM_DICT['log_path'] = 'data/logs/handwriting_02/'
-PARAM_DICT['log_freq'] = 500
-PARAM_DICT['print_freq'] = 25
+PARAM_DICT['log_freq'] = 1000
+PARAM_DICT['print_freq'] = 100
 
 # (settle architecture: vanilla, gm_out, gm_latent, multinomial_out, gm_latent_multinomial_out)
 # other architectures put on halt
@@ -16,13 +16,13 @@ PARAM_DICT['split_latent'] = 1
 PARAM_DICT['split_out'] = 1
 
 # specify global settings
-PARAM_DICT['batch_size'] = 40
+PARAM_DICT['batch_size'] = 200
 PARAM_DICT['data_dim'] = 2
-PARAM_DICT['n_latent'] = 20
-PARAM_DICT['seq_length'] = 50
+PARAM_DICT['n_latent'] = 200
+PARAM_DICT['seq_length'] = 500
 PARAM_DICT['learning_rate'] = 0.01
-PARAM_DICT['max_iter'] = 500
-PARAM_DICT['hid_state_size'] = 31
+PARAM_DICT['max_iter'] = 15000
+PARAM_DICT['hid_state_size'] = 500
 PARAM_DICT['masking'] = True
 PARAM_DICT['mask_value'] = 500
 
@@ -47,8 +47,11 @@ out_switch = {'vanilla': g_val, 'gm_out': gm_val, 'multinomial_out': n_out,
 n_out_stat = out_switch[PARAM_DICT['model']]
 
 # assign shared variables
-phi_x_out = 50
-phi_z_out = 80
+phi_x_out = 200
+phi_z_out = 200
+phi_enc_out = 200
+phi_prior_out = 200
+phi_dec_out = 200
 
 # specify each net
 PARAM_DICT['phi_x'] = {'name': 'phi_x',
@@ -59,7 +62,7 @@ PARAM_DICT['phi_x'] = {'name': 'phi_x',
 PARAM_DICT['phi_prior'] = {'name': 'phi_prior',
                            'nn_type': 'general_mlp',
                            'activation': 'relu',
-                           'layers': [n_ht, n_latent_stat],
+                           'layers': [n_ht, phi_prior_out],
                            'out2dist': 'normal',
                            'init_bias': 0.0,
                            'use_batch_norm': False,
@@ -70,7 +73,7 @@ PARAM_DICT['phi_prior'] = {'name': 'phi_prior',
 PARAM_DICT['phi_enc'] = {'name': 'phi_enc',
                          'nn_type': 'general_mlp',
                          'activation': 'elu',
-                         'layers': [phi_x_out + n_ht, n_latent_stat],
+                         'layers': [phi_x_out + n_ht, phi_enc_out],
                          'out2dist': 'normal',
                          'init_bias': 0.0,
                          'splits': PARAM_DICT['split_latent'],
@@ -80,12 +83,12 @@ PARAM_DICT['phi_enc'] = {'name': 'phi_enc',
 PARAM_DICT['phi_z'] = {'name': 'phi_z',
                        'nn_type': 'general_mlp',
                        'activation': 'elu',
-                       'layers': [n_z, 50, phi_z_out]}
+                       'layers': [n_z, 100, phi_z_out]}
 
 PARAM_DICT['phi_dec'] = {'name': 'phi_dec',
                          'nn_type': 'general_mlp',
                          'activation': 'elu',
-                         'layers': [phi_z_out + n_ht, n_out_stat],
+                         'layers': [phi_z_out + n_ht, phi_dec_out],
                          'out2dist': 'normal',
                          'init_bias': 0.0,
                          'splits': PARAM_DICT['split_out'],

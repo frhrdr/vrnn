@@ -92,6 +92,7 @@ def run_training(param_dict):
         tv_summary = [tf.reduce_mean(k) for k in tv]
         tv_print = tf.Print(err_acc, tv_summary, message='tv ')
 
+        print('graph built - beginning session')
         # get a session
         with tf.Session() as sess:
 

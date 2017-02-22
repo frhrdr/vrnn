@@ -128,7 +128,7 @@ def no_values_check(val):
 # parse_data_set('data/handwriting')
 # load_sequences('data/handwriting')
 # print(load_and_cut_sequences('data/handwriting').shape)
-a = load_and_cut_sequences('data/handwriting', cut_len=50)
+# a = load_and_cut_sequences('data/handwriting', cut_len=50)
 # print(a.shape)
 #
-np.save('data/handwriting/rough_cut_50_pad_500_max_300_xyonly.npy', a[:, :, :2])
+# np.save('data/handwriting/rough_cut_50_pad_500_max_300_xyonly.npy', a[:, :, :2])

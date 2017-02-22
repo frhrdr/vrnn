@@ -34,7 +34,7 @@ def gaussian_log_p(mean_x, cov_x, x_target, k):
     log_x_norm = -0.5 * (k * tf.log(2*np.pi) + log_cov_x_det)
     log_p = log_x_norm + log_x_exp
     # DEBUG
-    log_p = tf.Print(log_p, [tf.reduce_max(log_p)], message='log p ')
+    # log_p = tf.Print(log_p, [tf.reduce_max(log_p)], message='log p ')
     # log_p = tf.Print(log_p, [log_x_exp, log_x_norm, x_square, cov_x, x_diff], message='log p comps ')
     return log_p
 
@@ -51,7 +51,7 @@ def gaussian_kl_div(mean_0, cov_0, mean_1, cov_1, k):
 
     kl_div = 0.5 * (trace_term + square_term - k + log_term)
     # DEBUG
-    kl_div = tf.Print(kl_div, [tf.reduce_min(kl_div)], message="kl_div ")
+    # kl_div = tf.Print(kl_div, [tf.reduce_min(kl_div)], message="kl_div ")
     # kl_div = tf.Print(kl_div, [trace_term, square_term, log_term], message="kl-comps ")
     return kl_div
 
@@ -71,7 +71,6 @@ def vanilla_loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_di
     # bound = tf.Print(bound, [bound], message='bound ')
 
     if param_dict['masking']:
-        print(x_target.get_shape())
         zero_vals = tf.abs(x_target - tf.constant(param_dict['mask_value'], dtype=tf.float32))
         mask = tf.sign(tf.reduce_max(zero_vals, axis=1))
         num_live_samples = tf.reduce_sum(mask, axis=0)
@@ -115,7 +114,7 @@ def train(err_acc, learning_rate):
     grad_print = tf.Print(grad_print, max_grads, summarize=1, message='max_g_c ')
     grad_print = tf.Print(grad_print, mean_grads, summarize=1, message='mean_g_c ')
     train_op = optimizer.apply_gradients(zip(grads, tvars))
-    print([(k.name, k.get_shape()) for k in tvars])
+    # print([(k.name, k.get_shape()) for k in tvars])
     # train_op = optimizer.minimize(err_acc)  # , global_step=global_step)
     return train_op, grad_print
 
