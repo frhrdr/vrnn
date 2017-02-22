@@ -37,7 +37,7 @@ elif mode == 4:  # run series check on data
 elif mode == 5:  # run generation, then plot the results
     x = run_generation(PARAM_DICT['log_path'] + '/params.pkl')
     print(x.shape)
-    for idx in range(2):
+    for idx in range(10):
         s = x[:, idx, :]
         t = np.zeros((s.shape[0], 1))
         t[-1, 0] = 1

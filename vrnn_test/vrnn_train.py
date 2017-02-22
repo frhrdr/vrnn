@@ -181,11 +181,11 @@ def run_generation(params_file, ckpt_file=None, batch=None):
         x_final = loop_res[0]
 
         batch_dict = get_gen_batch_dict_generator(hid_pl, eps_z, eps_x, pd)
-        print([(k.name, k.get_shape()) for k in tf.trainable_variables()])
+        # print([(k.name, k.get_shape()) for k in tf.trainable_variables()])
         with tf.Session() as sess:
             # load weights
             saver = tf.train.Saver()
-            saver.restore(sess, 'data/logs/handwriting/ckpt-500')
+            saver.restore(sess, 'data/logs/handwriting_03/ckpt-2000')
             # saver.restore(sess, ckpt_file)
 
             feed = batch_dict.next()

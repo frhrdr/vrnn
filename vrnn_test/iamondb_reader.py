@@ -112,6 +112,15 @@ def load_and_cut_sequences(source_dir, seq_file='sequences.npy', idx_file='seque
     return data_mat
 
 
+def normalize_data(data_mat):
+    mat = data_mat.astype(float)
+    m = np.mean(mat, axis=0)
+    s = np.std(mat, axis=0)
+    for idx in [0, 1]:
+        mat[:, idx] = (mat[:, idx] - m[idx]) / s[idx]
+    return mat
+
+
 def no_values_check(val):
     seq, idx = load_sequences('data/handwriting')
     seq = seq[:, :2]
@@ -126,9 +135,8 @@ def no_values_check(val):
 # a = xml_to_mat('data/handwriting/strokesu.xml')
 # mat_to_plot(a)
 # parse_data_set('data/handwriting')
-# load_sequences('data/handwriting')
 # print(load_and_cut_sequences('data/handwriting').shape)
-# a = load_and_cut_sequences('data/handwriting', cut_len=50)
-# print(a.shape)
+# a = load_and_cut_sequences('data/handwriting', cut_len=500)
+# a = normalize_data(a)
 #
-# np.save('data/handwriting/rough_cut_50_pad_500_max_300_xyonly.npy', a[:, :, :2])
+# np.save('data/handwriting/rough_cut_500_pad_500_max_300_norm_xyonly.npy', a[:, :, :2])
