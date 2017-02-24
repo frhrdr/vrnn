@@ -4,10 +4,10 @@ PARAM_DICT['watchlist'] = {'allmc': []}
 
 # data path
 PARAM_DICT['series'] = 7
-PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_50_pad_500_max_300_norm_xyonly.npy'
-PARAM_DICT['log_path'] = 'data/logs/handwriting_04'
+PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_500_pad_500_max_300_norm_xyonly.npy'
+PARAM_DICT['log_path'] = 'data/logs/handwriting_05'
 PARAM_DICT['log_freq'] = 1000
-PARAM_DICT['print_freq'] = 100
+PARAM_DICT['print_freq'] = 200
 
 # (settle architecture: vanilla, gm_out, gm_latent, multinomial_out, gm_latent_multinomial_out)
 # other architectures put on halt
@@ -16,13 +16,13 @@ PARAM_DICT['split_latent'] = 1
 PARAM_DICT['split_out'] = 1
 
 # specify global settings
-PARAM_DICT['batch_size'] = 40  # 200
+PARAM_DICT['batch_size'] = 200
 PARAM_DICT['data_dim'] = 2
-PARAM_DICT['n_latent'] = 30  # 200
-PARAM_DICT['seq_length'] = 50  # 500
+PARAM_DICT['n_latent'] = 200
+PARAM_DICT['seq_length'] = 500
 PARAM_DICT['learning_rate'] = 0.01
-PARAM_DICT['max_iter'] = 1100  # 15000
-PARAM_DICT['hid_state_size'] = 50  # 500
+PARAM_DICT['max_iter'] = 5000
+PARAM_DICT['hid_state_size'] = 500
 PARAM_DICT['masking'] = True
 PARAM_DICT['mask_value'] = 500
 
@@ -47,11 +47,11 @@ out_switch = {'vanilla': g_val, 'gm_out': gm_val, 'multinomial_out': n_out,
 n_out_stat = out_switch[PARAM_DICT['model']]
 
 # assign shared variables
-phi_x_out = 50  # 200
-phi_z_out = 50  # 200
-phi_enc_out = 50  # 200
-phi_prior_out = 50  # 200
-phi_dec_out = 50  # 200
+phi_x_out = 200  # 200
+phi_z_out = 200  # 200
+phi_enc_out = 200  # 200
+phi_prior_out = 200  # 200
+phi_dec_out = 200  # 200
 
 # specify each net
 PARAM_DICT['phi_x'] = {'name': 'phi_x',
