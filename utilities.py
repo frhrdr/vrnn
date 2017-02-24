@@ -82,6 +82,9 @@ def general_mlp(input_tensor, params):
             biases = tf.get_variable(name=(name + '_b' + str(idx)), dtype=tf.float32,
                                      initializer=(tf.random_normal([layers[idx]], mean=init_bias)))
 
+            # tf.summary.histogram(name + '_w', weights)  # decided to do this centrally for all variables
+            # tf.summary.histogram(name + '_b', biases)
+
             act_key = 'relu'  # default
             if 'activation' in params:
                 act_key = params['activation']
@@ -89,14 +92,6 @@ def general_mlp(input_tensor, params):
             last = ACT_FUNCS[act_key](tf.matmul(last, weights) + biases)
 
             if 'use_batch_norm' in params and params['use_batch_norm'] == True:
-                # bn_mean = tf.get_variable(name=(name + '_bn_mean' + str(idx)), dtype=tf.float32,
-                #                           initializer=(tf.random_normal([layers[idx]], mean=init_bias)))
-                # bn_var = tf.get_variable(name=(name + '_bn_var' + str(idx)), dtype=tf.float32,
-                #                          initializer=(tf.random_normal([layers[idx]], mean=init_bias)))
-                # offset = None
-                # scale = None
-                # eps = 0.00001
-                # last = tf.nn.batch_normalization(last, bn_mean, bn_var, offset, scale, eps)
                 last = batch_norm(last,
                                   decay=0.999,
                                   center=True,
@@ -115,7 +110,7 @@ def general_mlp(input_tensor, params):
 def simple_lstm(params, name):
     n_units = params['layers']
     with tf.name_scope(name):
-        cell = tf.nn.rnn_cell.BasicLSTMCell(n_units)
+        cell = tf.contrib.rnn.BasicLSTMCell(n_units)
     return cell
 
 

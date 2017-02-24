@@ -65,7 +65,6 @@ def vanilla_loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_di
 
     # negative variational lower bound
     # (optimizer can only minimize - same as maximizing positive lower bound
-    bound = kl_div - log_p
 
     # DEBUG
     # bound = tf.Print(bound, [bound], message='bound ')
@@ -74,9 +73,22 @@ def vanilla_loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_di
         zero_vals = tf.abs(x_target - tf.constant(param_dict['mask_value'], dtype=tf.float32))
         mask = tf.sign(tf.reduce_max(zero_vals, axis=1))
         num_live_samples = tf.reduce_sum(mask, axis=0)
-        bound *= mask
+
+        # new - issue with summaries from different frames. abandoned for now
+        # log_p = tf.reduce_sum(log_p * mask, name='log_p_sum')
+        # kl_div = tf.reduce_sum(kl_div * mask, name='kl_div_sum')
+        # bound = (kl_div - log_p) / num_live_samples
+        #
+        # tf.summary.scalar('log_p', log_p / num_live_samples)
+        # tf.summary.scalar('kl_div', kl_div / num_live_samples)
+        # tf.summary.scalar('bound', bound)
+
+        # old
+        bound = (kl_div - log_p) * mask
         bound = tf.reduce_sum(bound, name='avg_neg_lower_bound') / num_live_samples
+
     else:
+        bound = kl_div - log_p
         # average over samples
         bound = tf.reduce_mean(bound, name='avg_neg_lower_bound')
 
@@ -96,13 +108,14 @@ def train(err_acc, learning_rate):
     # global_step = tf.Variable(0, name='global_step', trainable=False)
 
     tvars = tf.trainable_variables()
-
     # grads = [tf.clip_by_value(k, -1, 1) for k in tf.gradients(err_acc, tvars)]
     grads, _ = tf.clip_by_global_norm(tf.gradients(err_acc, tvars), 1)
     # grads = [tf.clip_by_norm(k, 1) for k in tf.gradients(err_acc, tvars)]
 
+
     # DEBUG
-    abs_grads = [tf.abs(k) for k in tf.gradients(err_acc, tvars) if k is not None]
+    all_grads = tf.gradients(err_acc, tvars)
+    abs_grads = [tf.abs(k) for k in all_grads if k is not None]
     max_grads = [tf.reduce_max(k) for k in abs_grads]
     mean_grads = [tf.reduce_mean(k) for k in abs_grads]
     grad_print = tf.Print(grads[0], max_grads, summarize=1, message='max_g ')
@@ -116,6 +129,7 @@ def train(err_acc, learning_rate):
     train_op = optimizer.apply_gradients(zip(grads, tvars))
     # print([(k.name, k.get_shape()) for k in tvars])
     # train_op = optimizer.minimize(err_acc)  # , global_step=global_step)
+
     return train_op, grad_print
 
 

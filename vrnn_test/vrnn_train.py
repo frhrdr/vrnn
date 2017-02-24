@@ -88,14 +88,26 @@ def run_training(param_dict):
         # make a batch dict generator with the given placeholder
         batch_dict = get_train_batch_dict_generator(data, x_pl, hid_pl, eps_z, pd)
 
+        # track all trained variables
         tv = tf.trainable_variables()
         tv_summary = [tf.reduce_mean(k) for k in tv]
         tv_print = tf.Print(err_acc, tv_summary, message='tv ')
+        for v in tv:
+            tf.summary.histogram('vars/' + v.name, v)
+
+        grads = tf.gradients(err_final, tv)
+        for g in grads:
+            tf.summary.histogram('grads/' + g.name, g)
+
+        tf.summary.scalar('bound', err_final)
+
+        summary_op = tf.summary.merge_all()
 
         print('graph built - beginning session')
         # get a session
         with tf.Session() as sess:
 
+            summary_writer = tf.summary.FileWriter(pd['log_path'] + '/summaries', sess.graph)
             # take start time
             start_time = time.time()
 
@@ -109,7 +121,10 @@ def run_training(param_dict):
                 feed = batch_dict.next()
 
                 # run train_op
-                _, err = sess.run([train_op, err_final], feed_dict=feed)
+                _, err, summary_str = sess.run([train_op, err_final, summary_op], feed_dict=feed)
+
+                summary_writer.add_summary(summary_str, it)
+                summary_writer.flush()
 
                 if (pd['print_freq'] > 0) and (it + 1) % pd['print_freq'] == 0:
 
