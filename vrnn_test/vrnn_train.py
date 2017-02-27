@@ -57,7 +57,7 @@ def run_training(param_dict):
         netgen.weave_inputs(net)
 
     # get a graph
-    with tf.Graph().as_default():
+    with tf.Graph().as_default() as graph:
         # get the stop condition and loop function
         stop_fun = model.get_train_stop_fun(pd['seq_length'])
         loop_fun = model.get_train_loop_fun(pd, netgen.fd, pd['watchlist'])
@@ -100,6 +100,13 @@ def run_training(param_dict):
             tf.summary.histogram('grads/' + g.name, g)
 
         tf.summary.scalar('bound', err_final)
+
+
+        # find softplus ops
+        # ops = graph.get_operations()
+        # softplus_tensors = [k.values() for k in ops if ('softplus' in k.name)]
+        # for t in softplus_tensors:
+        #     tf.summary.histogram(t.name, t)
 
         summary_op = tf.summary.merge_all()
 

@@ -5,7 +5,7 @@ PARAM_DICT['watchlist'] = {'allmc': []}
 # data path
 PARAM_DICT['series'] = 7
 PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_500_pad_500_max_300_norm_xyonly.npy'
-PARAM_DICT['log_path'] = 'data/logs/handwriting_07'
+PARAM_DICT['log_path'] = 'data/logs/handwriting_08'
 PARAM_DICT['log_freq'] = 1000
 PARAM_DICT['print_freq'] = 200
 

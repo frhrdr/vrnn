@@ -29,7 +29,6 @@ def gaussian_log_p(mean_x, cov_x, x_target, k):
     x_diff = x_target - mean_x
     x_square = tf.reduce_sum((x_diff / cov_x) * x_diff, axis=[1])
     log_x_exp = -0.5 * x_square
-    # cov_x_det = tf.reduce_prod(cov_x, axis=[1])
     log_cov_x_det = tf.reduce_sum(tf.log(cov_x), axis=[1])
     log_x_norm = -0.5 * (k * tf.log(2*np.pi) + log_cov_x_det)
     log_p = log_x_norm + log_x_exp
@@ -108,8 +107,8 @@ def train(err_acc, learning_rate):
     # global_step = tf.Variable(0, name='global_step', trainable=False)
 
     tvars = tf.trainable_variables()
-    # grads = [tf.clip_by_value(k, -1, 1) for k in tf.gradients(err_acc, tvars)]
-    grads, _ = tf.clip_by_global_norm(tf.gradients(err_acc, tvars), 1)
+    grads = [tf.clip_by_value(k, -1, 1) for k in tf.gradients(err_acc, tvars)]
+    # grads, _ = tf.clip_by_global_norm(tf.gradients(err_acc, tvars), 1)
     # grads = [tf.clip_by_norm(k, 1) for k in tf.gradients(err_acc, tvars)]
 
 
