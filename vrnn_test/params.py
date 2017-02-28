@@ -5,7 +5,7 @@ PARAM_DICT['watchlist'] = {'allmc': []}
 # data path
 PARAM_DICT['series'] = -1
 PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_200_pad_500_max_300_norm_xyonly.npy'
-PARAM_DICT['log_path'] = 'data/logs/handwriting_10'
+PARAM_DICT['log_path'] = 'data/logs/handwriting_11'
 PARAM_DICT['log_freq'] = 1000
 PARAM_DICT['print_freq'] = 200
 
@@ -20,7 +20,7 @@ PARAM_DICT['batch_size'] = 100
 PARAM_DICT['data_dim'] = 2
 PARAM_DICT['n_latent'] = 200
 PARAM_DICT['seq_length'] = 200
-PARAM_DICT['learning_rate'] = 0.0003
+PARAM_DICT['learning_rate'] = 0.003
 PARAM_DICT['max_iter'] = 2000
 PARAM_DICT['hid_state_size'] = 2000
 PARAM_DICT['masking'] = True
