@@ -1,8 +1,8 @@
 from __future__ import print_function
-from vrnn_test.vrnn_train import run_training, run_generation, run_read_then_continue
-from vrnn_test.number_series_gen import *
-from vrnn_test.params import PARAM_DICT
-from vrnn_test.iamondb_reader import mat_to_plot
+from vrnn_train import run_training, run_generation, run_read_then_continue
+from number_series_gen import *
+from params import PARAM_DICT
+from iamondb_reader import mat_to_plot
 import numpy as np
 
 mode = 1
