@@ -107,7 +107,7 @@ def train(err_acc, learning_rate):
     # global_step = tf.Variable(0, name='global_step', trainable=False)
 
     tvars = tf.trainable_variables()
-    grads = [tf.clip_by_value(k, -100, 100) for k in tf.gradients(err_acc, tvars)]
+    grads = [tf.clip_by_value(k, -1000, 1000) for k in tf.gradients(err_acc, tvars)]
     # grads, _ = tf.clip_by_global_norm(tf.gradients(err_acc, tvars), 1)
     # grads = [tf.clip_by_norm(k, 1) for k in tf.gradients(err_acc, tvars)]
 
