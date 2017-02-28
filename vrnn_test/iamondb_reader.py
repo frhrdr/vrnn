@@ -136,7 +136,7 @@ def no_values_check(val):
 # mat_to_plot(a)
 # parse_data_set('data/handwriting')
 # print(load_and_cut_sequences('data/handwriting').shape)
-a = load_and_cut_sequences('data/handwriting', cut_len=200)
+# a = load_and_cut_sequences('data/handwriting', cut_len=200)
 # a = normalize_data(a)
 #
-np.save('data/handwriting/rough_cut_200_pad_500_max_300_xyonly.npy', a[:, :, :2])
+# np.save('data/handwriting/rough_cut_200_pad_500_max_300_xyonly.npy', a[:, :, :2])
