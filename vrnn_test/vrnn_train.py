@@ -1,12 +1,15 @@
-import tensorflow as tf
-import numpy as np
-import time
 import os.path
 import pickle
-from utilities import NetGen
+import time
+
+import numpy as np
+import tensorflow as tf
+
 import vrnn_model as model
+from vrnn_test.utilities import NetGen
+
+
 # load param_dict for the overall model
-from params import PARAM_DICT
 
 
 def get_train_batch_dict_generator(data, x_pl, hid_pl, eps_z, pd):

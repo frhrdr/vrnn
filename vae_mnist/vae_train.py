@@ -1,12 +1,16 @@
 from __future__ import print_function
-import tensorflow as tf
-import time
+
 import os.path
-import vae_model
-import utilities as util
+import time
+
 import numpy as np
+import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data
+
+import vae_model
 from params import *
+from vrnn_test import utilities as util
+
 
 # flags = tf.app.flags
 # FLAGS = flags.FLAGS
