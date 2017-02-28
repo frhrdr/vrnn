@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 
 import vrnn_model as model
-from vrnn_test.utilities import NetGen
+from utilities import NetGen
 
 
 # load param_dict for the overall model
