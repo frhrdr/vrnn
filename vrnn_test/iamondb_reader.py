@@ -94,14 +94,24 @@ def load_sequences(source_dir, seq_file='sequences.npy', idx_file='sequence_indi
     return seq_mat, idx_mat
 
 
-def load_and_cut_sequences(source_dir, seq_file='sequences.npy', idx_file='sequence_indices.npy', cut_len=500, pad_value=500):
+def load_and_cut_sequences(source_dir, seq_file='sequences.npy', idx_file='sequence_indices.npy', cut_len=500, normalize=True, mask=True, mask_value=500):
     seq_mat, idx_mat = load_sequences(source_dir, seq_file, idx_file)
+
+    if normalize:
+        mat = seq_mat.astype(float)
+        mean = np.mean(mat, axis=0)
+        std = np.std(mat, axis=0)
+        for idx in [0, 1]:
+            mat[:, idx] = (mat[:, idx] - mean[idx]) / std[idx]
+    else:
+        mean = [0, 0]
+        std = [1, 1]
 
     split_list = np.split(seq_mat, idx_mat[1:], axis=0)
 
     for idx, mat in enumerate(split_list):
-        if mat.shape[0] < cut_len:
-            padded = np.zeros((cut_len, 3), dtype=float) + pad_value
+        if mask and mat.shape[0] < cut_len:
+            padded = np.zeros((cut_len, 3), dtype=float) + mask_value
             padded[:mat.shape[0], :] = mat
             split_list[idx] = padded
         else:
@@ -109,16 +119,19 @@ def load_and_cut_sequences(source_dir, seq_file='sequences.npy', idx_file='seque
 
     data_mat = np.asarray(split_list)
     data_mat = np.swapaxes(data_mat, 0, 1)
-    return data_mat
+    return data_mat, mean, std
 
 
 def normalize_data(data_mat):
     mat = data_mat.astype(float)
-    m = np.mean(mat, axis=0)
-    s = np.std(mat, axis=0)
+    m = np.mean(mat, axis=(0, 1))
+    s = np.std(mat, axis=(0, 1))
+    print(mat.shape)
+    print('mean: ', m.shape, m)
+    print('sigm: ', s.shape, s)
     for idx in [0, 1]:
-        mat[:, idx] = (mat[:, idx] - m[idx]) / s[idx]
-    return mat
+        mat[:, :, idx] = (mat[:, :, idx] - m[idx]) / s[idx]
+    return mat, m, s
 
 
 def no_values_check(val):
@@ -136,7 +149,13 @@ def no_values_check(val):
 # mat_to_plot(a)
 # parse_data_set('data/handwriting')
 # print(load_and_cut_sequences('data/handwriting').shape)
-# a = load_and_cut_sequences('data/handwriting', cut_len=200)
-# a = normalize_data(a)
+mat, mean, std = load_and_cut_sequences('data/handwriting', cut_len=200, normalize=True)
+# a, m, s = normalize_data(a)
+print(mean)
+print(std)
 #
-# np.save('data/handwriting/rough_cut_200_pad_500_max_300_xyonly.npy', a[:, :, :2])
+np.save('data/handwriting/rough_cut_200_pad_500_max_300_norm_xyonly.npy', mat[:, :, :2])
+
+
+# mean 200cut: [ 7.60117317  0.3098164]
+# std  200cut: [ 33.65332993  34.89729551]
