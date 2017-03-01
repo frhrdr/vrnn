@@ -210,8 +210,8 @@ def run_generation(params_file, ckpt_file=None, batch=None):
         with tf.Session() as sess:
             # load weights
             saver = tf.train.Saver()
-            saver.restore(sess, 'data/logs/handwriting_03/ckpt-2000')
-            # saver.restore(sess, ckpt_file)
+            # saver.restore(sess, 'data/logs/handwriting_14/ckpt-1000')
+            saver.restore(sess, ckpt_file)
 
             feed = batch_dict.next()
             # run generative model as desired

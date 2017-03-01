@@ -4,8 +4,8 @@ PARAM_DICT['watchlist'] = {'allmc': []}
 
 # data path
 PARAM_DICT['series'] = -1
-PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_200_pad_500_max_300_norm_xyonly.npy'
-PARAM_DICT['log_path'] = 'data/logs/handwriting_14'
+PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_200_pad_0_max_300_norm_xyonly.npy'
+PARAM_DICT['log_path'] = 'data/logs/handwriting_15'
 PARAM_DICT['log_freq'] = 1000
 PARAM_DICT['print_freq'] = 200
 
@@ -23,7 +23,7 @@ PARAM_DICT['seq_length'] = 200
 PARAM_DICT['learning_rate'] = 0.01
 PARAM_DICT['max_iter'] = 2000
 PARAM_DICT['hid_state_size'] = 2000
-PARAM_DICT['masking'] = True
+PARAM_DICT['masking'] = False
 PARAM_DICT['mask_value'] = 500
 
 # infer some necessary network sizes
@@ -57,12 +57,12 @@ phi_dec_out = 200  # 200
 PARAM_DICT['phi_x'] = {'name': 'phi_x',
                        'nn_type': 'general_mlp',
                        'activation': 'relu',
-                       'layers': [n_in, 200, phi_x_out]}
+                       'layers': [n_in, phi_x_out]}
 
 PARAM_DICT['phi_prior'] = {'name': 'phi_prior',
                            'nn_type': 'general_mlp',
                            'activation': 'relu',
-                           'layers': [n_ht, 200, phi_prior_out],
+                           'layers': [n_ht, phi_prior_out],
                            'out2dist': 'normal',
                            'init_bias': 0.0,
                            'use_batch_norm': False,
@@ -73,7 +73,7 @@ PARAM_DICT['phi_prior'] = {'name': 'phi_prior',
 PARAM_DICT['phi_enc'] = {'name': 'phi_enc',
                          'nn_type': 'general_mlp',
                          'activation': 'relu',
-                         'layers': [phi_x_out + n_ht, 200, phi_enc_out],
+                         'layers': [phi_x_out + n_ht, phi_enc_out],
                          'out2dist': 'normal',
                          'init_bias': 0.0,
                          'splits': PARAM_DICT['split_latent'],
@@ -83,12 +83,12 @@ PARAM_DICT['phi_enc'] = {'name': 'phi_enc',
 PARAM_DICT['phi_z'] = {'name': 'phi_z',
                        'nn_type': 'general_mlp',
                        'activation': 'relu',
-                       'layers': [n_z, 200, phi_z_out]}
+                       'layers': [n_z, phi_z_out]}
 
 PARAM_DICT['phi_dec'] = {'name': 'phi_dec',
                          'nn_type': 'general_mlp',
                          'activation': 'relu',
-                         'layers': [phi_z_out + n_ht, 200, phi_dec_out],
+                         'layers': [phi_z_out + n_ht, phi_dec_out],
                          'out2dist': 'normal',
                          'init_bias': 0.0,
                          'splits': PARAM_DICT['split_out'],

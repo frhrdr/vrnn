@@ -5,7 +5,7 @@ from params import PARAM_DICT
 from iamondb_reader import mat_to_plot
 import numpy as np
 
-mode = 1
+mode = 5
 
 if mode == 0:  # create a number series according to specifications
     number = PARAM_DICT['num_batches'] * PARAM_DICT['batch_size']
@@ -35,11 +35,19 @@ elif mode == 4:  # run series check on data
         series_check(data[:, idx, :], PARAM_DICT['series'])
 
 elif mode == 5:  # run generation, then plot the results
-    x = run_generation(PARAM_DICT['log_path'] + '/params.pkl')
+    x = run_generation(PARAM_DICT['log_path'] + '/params.pkl', ckpt_file=PARAM_DICT['log_path'] + '/ckpt-1000')
+
+    meanx = 7.60117317
+    meany = 0.3098164
+    stdx = 33.65332993
+    stdy = 34.89729551
+    # mean 200cut: [ 7.60117317  0.3098164]
+    # std  200cut: [ 33.65332993  34.89729551]
+
     print(x.shape)
     for idx in range(10):
         s = x[:, idx, :]
         t = np.zeros((s.shape[0], 1))
         t[-1, 0] = 1
         s = np.concatenate([s, t], axis=1)
-        mat_to_plot(s)
+        mat_to_plot(s, meanx=meanx, meany=meany, stdx=stdx, stdy=stdy)
