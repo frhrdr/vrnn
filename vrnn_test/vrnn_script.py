@@ -37,17 +37,13 @@ elif mode == 4:  # run series check on data
 elif mode == 5:  # run generation, then plot the results
     x = run_generation(PARAM_DICT['log_path'] + '/params.pkl', ckpt_file=PARAM_DICT['log_path'] + '/ckpt-1000')
 
-    meanx = 7.60117317
-    meany = 0.3098164
-    stdx = 33.65332993
-    stdy = 34.89729551
-    # mean 200cut: [ 7.60117317  0.3098164]
-    # std  200cut: [ 33.65332993  34.89729551]
+    meanx = 7.65791469
+    meany = 0.54339499
+    stdx = 33.82594281
+    stdy = 36.81890347
+    # [ 7.65791469  0.54339499  0.03887757]
+    # [ 33.82594281  36.81890347   0.19330315]
 
     print(x.shape)
     for idx in range(10):
-        s = x[:, idx, :]
-        t = np.zeros((s.shape[0], 1))
-        t[-1, 0] = 1
-        s = np.concatenate([s, t], axis=1)
-        mat_to_plot(s, meanx=meanx, meany=meany, stdx=stdx, stdy=stdy)
+        mat_to_plot(x[:, idx, :], meanx=meanx, meany=meany, stdx=stdx, stdy=stdy)
