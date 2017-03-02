@@ -174,16 +174,16 @@ def no_values_check(val):
 # mat_to_plot(a)
 # parse_data_set('data/handwriting')
 # print(load_and_cut_sequences('data/handwriting').shape)
-# mat, m, s = load_and_cut_sequences('data/handwriting', cut_len=200, mask=False, normalize=True)
-# np.save('data/handwriting/rough_cut_200_pad_0_max_300_norm_xyonly.npy', mat[:, :, :2])
+mat, m, s = load_and_cut_sequences('data/handwriting', cut_len=200, mask=False, normalize=False)
+np.save('data/handwriting/rough_cut_200_pad_0_max_300_xyonly.npy', mat[:, :, :2])
 
-# print(m)
-# print(s)
+print(m)
+print(s)
 #
-# a = np.load('data/handwriting/rough_cut_200_pad_0_max_300_norm_xyonly.npy')
+a = np.load('data/handwriting/rough_cut_200_pad_0_max_300_xyonly.npy')
 #
-# i = 0
-# mat_to_plot(a[:, i, :], m[0], m[1], s[0], s[1])
+i = 0
+mat_to_plot(a[:, i, :], m[0], m[1], s[0], s[1])
 
 
 # mask 200 cut
