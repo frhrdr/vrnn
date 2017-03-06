@@ -26,7 +26,8 @@ def vanilla_inference(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict, watch
 
 
 def naive_rec_err(mean_x, cov_x, x_target, k):
-    return -tf.reduce_sum(x_target - mean_x, axis=[1])
+    x_diff = x_target - mean_x
+    return -tf.reduce_sum(x_diff * x_diff, axis=[1])
 
 
 def gaussian_log_p(mean_x, cov_x, x_target, k):
