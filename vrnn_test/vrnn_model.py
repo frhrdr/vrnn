@@ -25,6 +25,10 @@ def vanilla_inference(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict, watch
     return mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, f_out, f_state
 
 
+def naive_rec_err(mean_x, cov_x, x_target, k):
+    return tf.reduce_sum(x_target - mean_x, axis=[1])
+
+
 def gaussian_log_p(mean_x, cov_x, x_target, k):
     x_diff = x_target - mean_x
     x_square = tf.reduce_sum((x_diff / cov_x) * x_diff, axis=[1])
@@ -59,7 +63,8 @@ def vanilla_loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_di
 
     k = param_dict['n_latent']
 
-    log_p = gaussian_log_p(mean_x, cov_x, x_target, k)
+    # log_p = gaussian_log_p(mean_x, cov_x, x_target, k)
+    log_p = naive_rec_err(mean_x, cov_x, x_target, k)
     kl_div = log_p
     # kl_div = gaussian_kl_div(mean_z, cov_z, mean_0, cov_0, k)
 
