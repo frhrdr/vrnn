@@ -104,9 +104,9 @@ def run_training(param_dict):
         for v in tv:
             tf.summary.histogram('vars/' + v.name, v)
 
-        grads = tf.gradients(bound_final, tv)
-        for g in grads:
-            tf.summary.histogram('grads/' + g.name, g)
+        # grads = tf.gradients(bound_final, tv)
+        # for g in grads:
+        #     tf.summary.histogram('grads/' + g.name, g)
 
         tf.summary.scalar('bound', bound_final)
         tf.summary.scalar('kldiv', kldiv_final)
