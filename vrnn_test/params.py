@@ -65,7 +65,7 @@ PARAM_DICT['phi_prior'] = {'name': 'phi_prior',
                            'layers': [n_ht, phi_prior_out],
                            'out2dist': 'normal',
                            'init_sig_var': 0.01,
-                           'init_bias': 0.0,
+                           'init_sig_bias': 0.0,
                            'use_batch_norm': False,
                            'splits': PARAM_DICT['split_latent'],
                            'dist_dim': n_z
@@ -77,7 +77,7 @@ PARAM_DICT['phi_enc'] = {'name': 'phi_enc',
                          'layers': [phi_x_out + n_ht, phi_enc_out],
                          'out2dist': 'normal',
                          'init_sig_var': 0.01,
-                         'init_bias': 0.0,
+                         'init_sig_bias': 0.0,
                          'splits': PARAM_DICT['split_latent'],
                          'dist_dim': n_z
                          }
