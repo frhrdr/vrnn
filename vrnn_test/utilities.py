@@ -134,7 +134,9 @@ def out_to_normal(net_fun, params):
             net_out = net_fun(in_pl)
             mean_weights = tf.get_variable(name + '_m', initializer=tf.random_normal([d_out, d_dist], mean=0))
             mean = tf.matmul(net_out, mean_weights)
-            cov_weights = tf.get_variable(name + '_c', initializer=tf.random_normal([d_out, d_dist], mean=0, stddev=0.01))
+            cov_weights = tf.get_variable(name + '_c', initializer=tf.random_normal([d_out, d_dist],
+                                                                                    mean=0,
+                                                                                    stddev=params['init_sig_var']))
             cov = tf.nn.softplus(tf.matmul(net_out, cov_weights), name=name + '_softplus')
             cov = cov + tf.constant(0.0001, dtype=tf.float32, name='min_variance')
         return mean, cov
@@ -154,7 +156,9 @@ def out_to_normal_split(net_fun, params):  # now old
             mean = tf.matmul(out_m, mean_weights)
             # mean = tf.Print(mean, [mean, out_m, mean_weights, out_c], message=name + ' m ')
             # mean = out_m
-            cov_weights = tf.get_variable(name + '_c', initializer=tf.random_normal([dims, dims], mean=0, stddev=0.01))
+            cov_weights = tf.get_variable(name + '_c', initializer=tf.random_normal([dims, dims],
+                                                                                    mean=0,
+                                                                                    stddev=params['init_sig_var']))
             cov = tf.nn.softplus(tf.matmul(out_c, cov_weights))
             # cov = tf.exp(tf.matmul(out_c, cov_weights))
             # cov = tf.nn.softplus(out_c)
@@ -174,7 +178,9 @@ def out_to_normal_plus_binary(net_fun, params):
             net_out = net_fun(in_pl)
             mean_weights = tf.get_variable(name + '_m', initializer=tf.random_normal([d_out, d_dist], mean=0))
             mean = tf.matmul(net_out, mean_weights)
-            cov_weights = tf.get_variable(name + '_c', initializer=tf.random_normal([d_out, d_dist], mean=0, stddev=0.01))
+            cov_weights = tf.get_variable(name + '_c', initializer=tf.random_normal([d_out, d_dist],
+                                                                                    mean=0,
+                                                                                    stddev=params['init_sig_var']))
             cov = tf.nn.softplus(tf.matmul(net_out, cov_weights))
             bin_weights = tf.get_variable(name + '_bin', initializer=tf.random_normal([d_out, 1], mean=0, stddev=0.01))
             binary = tf.nn.tanh(tf.matmul(net_out, bin_weights))
@@ -206,7 +212,9 @@ def out_to_gm(net_fun, params):
                 mean = tf.matmul(out_m, mean_weights)
                 means.append(mean)
 
-                cov_weights = tf.get_variable(name + '_c', initializer=tf.random_normal([dims, dims], mean=0, stddev=0.01))
+                cov_weights = tf.get_variable(name + '_c', initializer=tf.random_normal([dims, dims],
+                                                                                        mean=0,
+                                                                                        stddev=params['init_sig_var']))
                 cov = tf.nn.softplus(tf.matmul(out_c, cov_weights))
                 covs.append(cov)
 
