@@ -28,7 +28,8 @@ def get_train_batch_dict_generator(data, x_pl, hid_pl, eps_z, pd):
 
         d[hid_pl] = np.zeros((pd['batch_size'], pd['hid_state_size']))  # initial hidden state
         # 'fresh' noise for sampling
-        d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['n_latent']))
+        # d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['n_latent']))
+        d[eps_z] = np.zeros((pd['seq_length'], pd['batch_size'], pd['n_latent']))
         yield d
 
 
