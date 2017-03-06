@@ -60,7 +60,8 @@ def vanilla_loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_di
     k = param_dict['n_latent']
 
     log_p = gaussian_log_p(mean_x, cov_x, x_target, k)
-    kl_div = gaussian_kl_div(mean_z, cov_z, mean_0, cov_0, k)
+    kl_div = log_p
+    # kl_div = gaussian_kl_div(mean_z, cov_z, mean_0, cov_0, k)
 
     # negative variational lower bound
     # (optimizer can only minimize - same as maximizing positive lower bound
