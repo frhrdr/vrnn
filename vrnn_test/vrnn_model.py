@@ -73,23 +73,23 @@ def vanilla_loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_di
         mask = tf.sign(tf.reduce_max(zero_vals, axis=1))
         num_live_samples = tf.reduce_sum(mask, axis=0)
 
-        # new - issue with summaries from different frames. abandoned for now
-        # log_p = tf.reduce_sum(log_p * mask, name='log_p_sum')
-        # kl_div = tf.reduce_sum(kl_div * mask, name='kl_div_sum')
-        # bound = (kl_div - log_p) / num_live_samples
-        #
-        # tf.summary.scalar('log_p', log_p / num_live_samples)
-        # tf.summary.scalar('kl_div', kl_div / num_live_samples)
-        # tf.summary.scalar('bound', bound)
-
+        # new - passing kldiv and log_p for plotting outside loop
+        log_p = tf.reduce_sum(log_p * mask, name='log_p_sum') / num_live_samples
+        kl_div = tf.reduce_sum(kl_div * mask, name='kl_div_sum') / num_live_samples
+        bound = kl_div - log_p
         # old
-        bound = (kl_div - log_p) * mask
-        bound = tf.reduce_sum(bound, name='avg_neg_lower_bound') / num_live_samples
+        # bound = (kl_div - log_p) * mask
+        # bound = tf.reduce_sum(bound, name='avg_neg_lower_bound') / num_live_samples
 
     else:
+        # new
+        kl_div = tf.reduce_mean(kl_div, name='kldiv_scalar')
+        log_p = tf.reduce_mean(log_p, name='log_p_scalar')
         bound = kl_div - log_p
-        # average over samples
-        bound = tf.reduce_mean(bound, name='avg_neg_lower_bound')
+        # old
+        # bound = kl_div - log_p
+        # # average over samples
+        # bound = tf.reduce_mean(bound, name='avg_neg_lower_bound')
 
     # DEBUG
     # grads = [tf.reduce_mean(k) for k in tf.gradients(bound, [mean_0, cov_0, mean_z, cov_z, mean_x, cov_x])]
@@ -98,7 +98,7 @@ def vanilla_loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_di
     # bound = tf.Print(bound, grads, message='bg ')
     # bound = tf.Print(bound, tf.gradients(bound, [mean_z, cov_z]), message='bg ')
 
-    return bound
+    return bound, kl_div, log_p
 
 
 def train(err_acc, learning_rate):
@@ -143,16 +143,18 @@ def train_loop(x_pl, hid_pl, err_acc, count, f_state, eps_z, param_dict, fun_dic
     mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, f_theta, f_state = vanilla_inference(x_t, hid_pl, f_state, eps_z_t,
                                                                                       param_dict, fun_dict, watchlist)
     # build loss
-    step_error = vanilla_loss(x_t, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict, watchlist)
+    bound_step, kldiv_step, log_p_step = vanilla_loss(x_t, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict, watchlist)
     # set hid_pl to result of f_theta
     hid_pl = f_theta
     # set err_acc to += error from this time-step
     # err_acc = tf.Print(err_acc, [err_acc], message="err_acc_loop")
-    err_acc = tf.add(err_acc, step_error)
-    # set count += 1
-    count = tf.add(count, 1)
-    # err_acc = tf.Print(err_acc, [err_acc], message='acc ')
-    # count = tf.Print(count, [hid_pl], message="hid", summarize=20)
+
+    bound_acc = err_acc[0] + bound_step
+    kldiv_acc = err_acc[1] + kldiv_step
+    log_p_acc = err_acc[2] + log_p_step
+    err_acc = [bound_acc, kldiv_acc, log_p_acc]
+
+    count = count + 1
     return x_pl, hid_pl, err_acc, count, f_state, eps_z
 
 

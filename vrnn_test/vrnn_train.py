@@ -71,7 +71,9 @@ def run_training(param_dict):
         eps_z = tf.placeholder(tf.float32, name='eps_z',
                                shape=(pd['seq_length'], pd['batch_size'], pd['n_latent']))
         hid_pl = tf.placeholder(tf.float32, shape=(pd['batch_size'], pd['hid_state_size']), name='ht_init')
-        err_acc = tf.Variable(0, dtype=tf.float32, trainable=False, name='err_acc')
+        err_acc = [tf.Variable(0, dtype=tf.float32, trainable=False, name='bound_acc'),
+                   tf.Variable(0, dtype=tf.float32, trainable=False, name='kldiv_acc'),
+                   tf.Variable(0, dtype=tf.float32, trainable=False, name='log_p_acc')]
         count = tf.Variable(0, dtype=tf.float32, trainable=False, name='counter')  # tf.to_int32(0, name='counter')
         f_state = netgen.fd['f_theta'].zero_state(pd['batch_size'], tf.float32)
         loop_vars = [x_pl, hid_pl, err_acc, count, f_state, eps_z]
@@ -84,9 +86,12 @@ def run_training(param_dict):
                                      parallel_iterations=1,  # can probably drop these params
                                      swap_memory=False)
         err_final = loop_res[2]
+        bound_final = err_final[0]
+        kldiv_final = err_final[1]
+        log_p_final = err_final[2]
 
         # get the train_op
-        train_op, grad_print = model.train(err_final, pd['learning_rate'])
+        train_op, grad_print = model.train(bound_final, pd['learning_rate'])
 
         # make a batch dict generator with the given placeholder
         batch_dict = get_train_batch_dict_generator(data, x_pl, hid_pl, eps_z, pd)
@@ -94,16 +99,17 @@ def run_training(param_dict):
         # track all trained variables
         tv = tf.trainable_variables()
         tv_summary = [tf.reduce_mean(k) for k in tv]
-        tv_print = tf.Print(err_acc, tv_summary, message='tv ')
+        tv_print = tf.Print(bound_final, tv_summary, message='tv ')
         for v in tv:
             tf.summary.histogram('vars/' + v.name, v)
 
-        grads = tf.gradients(err_final, tv)
+        grads = tf.gradients(bound_final, tv)
         for g in grads:
             tf.summary.histogram('grads/' + g.name, g)
 
-        tf.summary.scalar('bound', err_final)
-
+        tf.summary.scalar('bound', bound_final)
+        tf.summary.scalar('kldiv', kldiv_final)
+        tf.summary.scalar('log_p', log_p_final)
 
         # find softplus ops
         # ops = graph.get_operations()
@@ -131,7 +137,7 @@ def run_training(param_dict):
                 feed = batch_dict.next()
 
                 # run train_op
-                _, err, summary_str = sess.run([train_op, err_final, summary_op], feed_dict=feed)
+                _, err, summary_str = sess.run([train_op, bound_final, summary_op], feed_dict=feed)
 
                 summary_writer.add_summary(summary_str, it)
                 summary_writer.flush()
@@ -143,7 +149,7 @@ def run_training(param_dict):
                           ' time: ' + str(time.time() - start_time))
 
                     # DEBUG
-                    sess.run([grad_print, tv_print], feed_dict=feed)
+                    # sess.run([grad_print, tv_print], feed_dict=feed)
 
                 # occasionally save weights and log
                 if (it + 1) % pd['log_freq'] == 0 or (it + 1) == pd['max_iter']:
