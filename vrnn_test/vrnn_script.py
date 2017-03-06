@@ -35,7 +35,7 @@ elif mode == 4:  # run series check on data
         series_check(data[:, idx, :], PARAM_DICT['series'])
 
 elif mode == 5:  # run generation, then plot the results
-    x = run_generation(PARAM_DICT['log_path'] + '/params.pkl', ckpt_file=PARAM_DICT['log_path'] + '/ckpt-1000')
+    x = run_generation(PARAM_DICT['log_path'] + '/params.pkl', ckpt_file=PARAM_DICT['log_path'] + '/ckpt-2000')
 
     meanx = 7.65791469
     meany = 0.54339499
