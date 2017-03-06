@@ -5,7 +5,7 @@ PARAM_DICT['watchlist'] = {'allmc': []}
 # data path
 PARAM_DICT['series'] = -1
 PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_200_pad_0_max_300_norm_xyonly.npy'
-PARAM_DICT['log_path'] = 'data/logs/handwriting_21'
+PARAM_DICT['log_path'] = 'data/logs/handwriting_22'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 200
 
@@ -92,8 +92,8 @@ PARAM_DICT['phi_dec'] = {'name': 'phi_dec',
                          'activation': 'relu',
                          'layers': [phi_z_out + n_ht, phi_dec_out],
                          'out2dist': 'normal',
-                         'init_sig_var': 0.01,
-                         'init_bias': 0.0,
+                         'init_sig_var': 1,
+                         'init_sig_bias': 0.1,
                          'splits': PARAM_DICT['split_out'],
                          'dist_dim': n_out
                          }

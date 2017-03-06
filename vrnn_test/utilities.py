@@ -135,7 +135,7 @@ def out_to_normal(net_fun, params):
             mean_weights = tf.get_variable(name + '_m', initializer=tf.random_normal([d_out, d_dist], mean=0))
             mean = tf.matmul(net_out, mean_weights)
             cov_weights = tf.get_variable(name + '_c', initializer=tf.random_normal([d_out, d_dist],
-                                                                                    mean=0,
+                                                                                    mean=params['init_sig_bias'],
                                                                                     stddev=params['init_sig_var']))
             cov = tf.nn.softplus(tf.matmul(net_out, cov_weights), name=name + '_softplus')
             cov = cov + tf.constant(0.0001, dtype=tf.float32, name='min_variance')
