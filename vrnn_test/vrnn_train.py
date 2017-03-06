@@ -28,8 +28,8 @@ def get_train_batch_dict_generator(data, x_pl, hid_pl, eps_z, pd):
 
         d[hid_pl] = np.zeros((pd['batch_size'], pd['hid_state_size']))  # initial hidden state
         # 'fresh' noise for sampling
-        # d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['n_latent']))
-        d[eps_z] = np.zeros((pd['seq_length'], pd['batch_size'], pd['n_latent']))
+        d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['n_latent']))
+        # d[eps_z] = np.zeros((pd['seq_length'], pd['batch_size'], pd['n_latent']))  # for debugging
         yield d
 
 
@@ -93,7 +93,7 @@ def run_training(param_dict):
 
         # get the train_op
         # train_op, grad_print = model.train(bound_final, pd['learning_rate'])
-        train_op, grad_print = model.train(-log_p_final, pd['learning_rate'])
+        train_op, grad_print = model.train(bound_final, pd['learning_rate'])
 
         # make a batch dict generator with the given placeholder
         batch_dict = get_train_batch_dict_generator(data, x_pl, hid_pl, eps_z, pd)

@@ -25,7 +25,7 @@ def vanilla_inference(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict, watch
     return mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, f_out, f_state
 
 
-def naive_rec_err(mean_x, cov_x, x_target, k):
+def naive_rec_err(mean_x, cov_x, x_target, k):  # for debugging purposes
     x_diff = x_target - mean_x
     return -tf.reduce_sum(x_diff * x_diff, axis=[1])
 
@@ -37,9 +37,6 @@ def gaussian_log_p(mean_x, cov_x, x_target, k):
     log_cov_x_det = tf.reduce_sum(tf.log(cov_x), axis=[1])
     log_x_norm = -0.5 * (k * tf.log(2*np.pi) + log_cov_x_det)
     log_p = log_x_norm + log_x_exp
-    # DEBUG
-    # log_p = tf.Print(log_p, [tf.reduce_max(log_p)], message='log p ')
-    # log_p = tf.Print(log_p, [log_x_exp, log_x_norm, x_square, cov_x, x_diff], message='log p comps ')
     return log_p
 
 
@@ -54,9 +51,6 @@ def gaussian_kl_div(mean_0, cov_0, mean_1, cov_1, k):
     square_term = tf.reduce_sum(mean_diff * cov_1_inv * mean_diff, axis=[1])
 
     kl_div = 0.5 * (trace_term + square_term - k + log_term)
-    # DEBUG
-    # kl_div = tf.Print(kl_div, [tf.reduce_min(kl_div)], message="kl_div ")
-    # kl_div = tf.Print(kl_div, [trace_term, square_term, log_term], message="kl-comps ")
     return kl_div
 
 
@@ -64,10 +58,8 @@ def vanilla_loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_di
 
     k = param_dict['n_latent']
 
-    # log_p = gaussian_log_p(mean_x, cov_x, x_target, k)
-    log_p = naive_rec_err(mean_x, cov_x, x_target, k)
-    kl_div = log_p
-    # kl_div = gaussian_kl_div(mean_z, cov_z, mean_0, cov_0, k)
+    log_p = gaussian_log_p(mean_x, cov_x, x_target, k)
+    kl_div = gaussian_kl_div(mean_z, cov_z, mean_0, cov_0, k)
 
     # negative variational lower bound
     # (optimizer can only minimize - same as maximizing positive lower bound

@@ -82,12 +82,10 @@ def general_mlp(input_tensor, params):
             biases = tf.get_variable(name=(name + '_b' + str(idx)), dtype=tf.float32,
                                      initializer=(tf.random_normal([layers[idx]], mean=init_bias)))
 
-            # tf.summary.histogram(name + '_w', weights)  # decided to do this centrally for all variables
-            # tf.summary.histogram(name + '_b', biases)
-
-            act_key = 'relu'  # default
             if 'activation' in params:
                 act_key = params['activation']
+            else:
+                act_key = 'relu'  # default
 
             last = ACT_FUNCS[act_key](tf.matmul(last, weights) + biases)
 
@@ -138,7 +136,7 @@ def out_to_normal(net_fun, params):
                                                                                     mean=params['init_sig_bias'],
                                                                                     stddev=params['init_sig_var']))
             cov = tf.nn.softplus(tf.matmul(net_out, cov_weights), name=name + '_softplus')
-            # cov = cov + tf.constant(0.0001, dtype=tf.float32, name='min_variance')
+            cov = cov + tf.constant(1.0, dtype=tf.float32, name='min_variance')
         return mean, cov
     return f
 
