@@ -99,7 +99,7 @@ def run_training(param_dict):
         # track all trained variables
         tv = tf.trainable_variables()
         tv_summary = [tf.reduce_mean(k) for k in tv]
-        tv_print = tf.Print(bound_final, tv_summary, message='tv ')
+        # tv_print = tf.Print(bound_final, tv_summary, message='tv ')
         for v in tv:
             tf.summary.histogram('vars/' + v.name, v)
 
