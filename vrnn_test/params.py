@@ -2,14 +2,14 @@ PARAM_DICT = dict()
 
 # data path
 PARAM_DICT['series'] = -1
-PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_200_pad_0_max_300_norm_xyonly.npy'
-PARAM_DICT['log_path'] = 'data/logs/handwriting_34'
+PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_200_pad_500_max_300_norm_xyonly.npy'
+PARAM_DICT['log_path'] = 'data/logs/handwriting_35'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 200
 
 # other architectures put on halt
-PARAM_DICT['model'] = 'gm_out'  # options: gauss_out, gm_out
-PARAM_DICT['modes_out'] = 10
+PARAM_DICT['model'] = 'gauss_out'  # options: gauss_out, gm_out
+PARAM_DICT['modes_out'] = 1
 
 # specify global settings
 PARAM_DICT['batch_size'] = 100
@@ -19,7 +19,7 @@ PARAM_DICT['seq_length'] = 200
 PARAM_DICT['learning_rate'] = 0.001
 PARAM_DICT['max_iter'] = 2000
 PARAM_DICT['hid_state_size'] = 2000
-PARAM_DICT['masking'] = False
+PARAM_DICT['masking'] = True
 PARAM_DICT['mask_value'] = 500
 
 # infer some necessary network sizes
@@ -44,7 +44,7 @@ phi_dec_out = 200  # 200
 # specify each net
 PARAM_DICT['phi_x'] = {'name': 'phi_x',
                        'nn_type': 'general_mlp',
-                       'activation': 'relu',
+                       'activation': 'elu',
                        'layers': [n_in, phi_x_out]}
 
 PARAM_DICT['phi_prior'] = {'name': 'phi_prior',
@@ -54,7 +54,6 @@ PARAM_DICT['phi_prior'] = {'name': 'phi_prior',
                            'out2dist': 'normal',
                            'init_sig_var': 0.01,
                            'init_sig_bias': 0.0,
-                           'use_batch_norm': False,
                            'dist_dim': n_z
                            }
 
@@ -70,7 +69,7 @@ PARAM_DICT['phi_enc'] = {'name': 'phi_enc',
 
 PARAM_DICT['phi_z'] = {'name': 'phi_z',
                        'nn_type': 'general_mlp',
-                       'activation': 'relu',
+                       'activation': 'elu',
                        'layers': [n_z, phi_z_out]}
 
 PARAM_DICT['phi_dec'] = {'name': 'phi_dec',
