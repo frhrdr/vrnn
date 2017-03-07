@@ -106,7 +106,7 @@ def run_training(pd):
 
             for it in range(pd['max_iter']):
                 feed = batch_dict.next()
-                print('starting run')
+
                 _, err, summary_str = sess.run([train_op, bound_final, summary_op], feed_dict=feed)
 
                 summary_writer.add_summary(summary_str, it)

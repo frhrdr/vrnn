@@ -29,6 +29,7 @@ def inference(in_pl, hid_pl, f_state, eps_z, param_dict, fd):
 
 def gaussian_log_p(params_out, x_target, dim):
     mean_x, cov_x = params_out
+
     x_diff = x_target - mean_x
     x_square = tf.reduce_sum((x_diff / cov_x) * x_diff, axis=[1])
     log_x_exp = -0.5 * x_square
@@ -39,17 +40,19 @@ def gaussian_log_p(params_out, x_target, dim):
 
 
 def gm_log_p(params_out, x_target, dim):
-    means_x, covs_x, pis_x = params_out
-    pi_norm = tf.constant(0, tf.float32)
-    log_p_acc = tf.constant(0, tf.float32)
+    mean_x, cov_x, pi_x = params_out
+    mean_x = tf.transpose(mean_x, perm=[1, 0, 2])
+    cov_x = tf.transpose(cov_x, perm=[1, 0, 2])
+    pi_x = tf.transpose(pi_x, perm=[1, 0])
 
-    for idx in range(len(means_x)):
-        pi_norm += pis_x[idx]
+    x_diff = x_target - mean_x
+    x_square = tf.reduce_sum((x_diff / cov_x) * x_diff, axis=[2])
+    log_x_exp = -0.5 * x_square
+    log_cov_x_det = tf.reduce_sum(tf.log(cov_x), axis=[2])
+    log_x_norm = -0.5 * (dim * tf.log(2 * np.pi) + log_cov_x_det) + pi_x
+    log_p = tf.reduce_logsumexp(log_x_norm + log_x_exp, axis=[0])
+    return log_p
 
-    for idx in range(len(means_x)):
-        log_p_acc += gaussian_log_p((means_x[idx], covs_x[idx]), x_target, dim) * pis_x[idx] / pi_norm
-
-    return log_p_acc
 
 
 def gaussian_kl_div(mean_0, cov_0, mean_1, cov_1, dim):

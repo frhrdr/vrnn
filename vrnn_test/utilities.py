@@ -159,23 +159,21 @@ def out_to_gm(net_fun, params):
         with tf.name_scope(name):
             net_out = net_fun(in_pl)
 
-            means = []
-            covs = []
-            pis = []
-            for mode in range(num_modes):
-                # each iteration uses 2*dims+1 outputs
-                mean_weights = tf.get_variable(name + '_m' + str(mode), initializer=tf.random_normal([d_out, d_dist], mean=0))
-                mean = tf.matmul(net_out, mean_weights)
-                means.append(mean)
-                cov_weights = tf.get_variable(name + '_c' + str(mode), initializer=tf.random_normal([d_out, d_dist],
-                                                                                        mean=params['init_sig_bias'],
-                                                                                        stddev=params['init_sig_var']))
-                cov = tf.nn.softplus(tf.matmul(net_out, cov_weights))
-                covs.append(cov)
-                pi_weights = tf.get_variable(name + '_pi' + str(mode), initializer=tf.random_normal([d_out, 1], mean=0))
-                pi = tf.matmul(net_out, pi_weights)
-                pis.append(pi)
-        return means, covs, pis
+            pi_weights = tf.get_variable(name + '_pi', initializer=tf.random_normal([d_out, num_modes], mean=0))
+            pi = tf.nn.softmax(tf.matmul(net_out, pi_weights))
+
+            mean_weights = tf.get_variable(name + '_m',
+                                           initializer=tf.random_normal([d_out, num_modes * d_dist], mean=0))
+            mean = tf.reshape(tf.matmul(net_out, mean_weights), [-1, num_modes, d_dist])
+
+            cov_weights = tf.get_variable(name + '_c',
+                                          initializer=tf.random_normal([d_out, num_modes * d_dist],
+                                                                       mean=params['init_sig_bias'],
+                                                                       stddev=params['init_sig_var']))
+            cov = tf.reshape(tf.nn.softplus(tf.matmul(net_out, cov_weights)), [-1, num_modes, d_dist])
+
+
+        return mean, cov, pi
     return f
 
 
