@@ -36,8 +36,14 @@ def get_debug_pl(pd):
     mean_0 = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['z_dim']], name='mean_prior_debug')
     cov_0 = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['z_dim']], name='cov_prior_debug')
     mean_z = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['z_dim']], name='mean_z_debug')
-    cov_z = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['z_dim']], name='cov_prior_debug')
-    return [mean_0, cov_0, mean_z, cov_z]
+    cov_z = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['z_dim']], name='cov_z_debug')
+    if pd['model'] == 'gm_out':
+        mean_x = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['modes_out'], pd['x_dim']], name='mean_x_debug')
+        cov_x = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['modes_out'], pd['x_dim']], name='cov_x_debug')
+    else:
+        mean_x = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['x_dim']], name='mean_x_debug')
+        cov_x = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['x_dim']], name='cov_x_debug')
+    return [mean_0, cov_0, mean_z, cov_z, mean_x, cov_x]
 
 
 def run_training(pd):
