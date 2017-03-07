@@ -112,6 +112,8 @@ def run_training(pd):
 
         debug = loop_res[-1]
         for t in debug:
+            t = tf.maximum(t, -40)
+            t = tf.minimum(t, 40)
             tf.summary.histogram('debug/' + t.name, t)
 
         summary_op = tf.summary.merge_all()
