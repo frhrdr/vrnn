@@ -1,24 +1,20 @@
 PARAM_DICT = dict()
 
-PARAM_DICT['watchlist'] = {'allmc': []}
-
 # data path
 PARAM_DICT['series'] = -1
 PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_200_pad_0_max_300_norm_xyonly.npy'
-PARAM_DICT['log_path'] = 'data/logs/handwriting_30'
+PARAM_DICT['log_path'] = 'data/logs/handwriting_31'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 200
 
-# (settle architecture: vanilla, gm_out, gm_latent, multinomial_out, gm_latent_multinomial_out)
 # other architectures put on halt
-PARAM_DICT['model'] = 'vanilla'
-PARAM_DICT['split_latent'] = 1
-PARAM_DICT['split_out'] = 1
+PARAM_DICT['model'] = 'gm_out'  # options: gauss_out, gm_out
+PARAM_DICT['modes_out'] = 10
 
 # specify global settings
 PARAM_DICT['batch_size'] = 100
-PARAM_DICT['data_dim'] = 2
-PARAM_DICT['n_latent'] = 200
+PARAM_DICT['x_dim'] = 2
+PARAM_DICT['z_dim'] = 200
 PARAM_DICT['seq_length'] = 200
 PARAM_DICT['learning_rate'] = 0.001
 PARAM_DICT['max_iter'] = 2000
@@ -27,24 +23,16 @@ PARAM_DICT['masking'] = False
 PARAM_DICT['mask_value'] = 500
 
 # infer some necessary network sizes
-n_in = PARAM_DICT['data_dim']           # x
-n_out = PARAM_DICT['data_dim']          # x
-n_z = PARAM_DICT['n_latent']            # z
+n_in = PARAM_DICT['x_dim']           # x
+n_out = PARAM_DICT['x_dim']          # x
+n_z = PARAM_DICT['z_dim']            # z
 n_ht = PARAM_DICT['hid_state_size']     # h_t
 
-
-# infer number of parameters based un latent and output distribution
-g_val = 2 * n_z
-gm_val = (2 * n_z + 1) * PARAM_DICT['split_latent']
-latent_switch = {'vanilla': g_val, 'gm_out': g_val, 'multinomial_out': g_val,
-                 'gm_latent': gm_val, 'gm_latent_multinomial_out': gm_val}
-n_latent_stat = latent_switch[PARAM_DICT['model']]       # mu + sigma
-
-g_val = 2 * n_out
-gm_val = (2 * n_z + 1) * PARAM_DICT['split_latent']
-out_switch = {'vanilla': g_val, 'gm_out': gm_val, 'multinomial_out': n_out,
-              'gm_latent': g_val, 'gm_latent_multinomial_out': n_out}
-n_out_stat = out_switch[PARAM_DICT['model']]
+if PARAM_DICT['model'] == 'gauss_out':
+    out_dist = 'normal'
+    PARAM_DICT['modes_out'] = 1
+else:
+    out_dist = 'gm'
 
 # assign shared variables
 phi_x_out = 200  # 200
@@ -67,7 +55,6 @@ PARAM_DICT['phi_prior'] = {'name': 'phi_prior',
                            'init_sig_var': 0.01,
                            'init_sig_bias': 0.0,
                            'use_batch_norm': False,
-                           'splits': PARAM_DICT['split_latent'],
                            'dist_dim': n_z
                            }
 
@@ -78,7 +65,6 @@ PARAM_DICT['phi_enc'] = {'name': 'phi_enc',
                          'out2dist': 'normal',
                          'init_sig_var': 0.01,
                          'init_sig_bias': 0.0,
-                         'splits': PARAM_DICT['split_latent'],
                          'dist_dim': n_z
                          }
 
@@ -91,10 +77,10 @@ PARAM_DICT['phi_dec'] = {'name': 'phi_dec',
                          'nn_type': 'general_mlp',
                          'activation': 'relu',
                          'layers': [phi_z_out + n_ht, phi_dec_out],
-                         'out2dist': 'normal',
+                         'out2dist': out_dist,
                          'init_sig_var': 0.01,
                          'init_sig_bias': 0.0,
-                         'splits': PARAM_DICT['split_out'],
+                         'modes': PARAM_DICT['modes_out'],
                          'dist_dim': n_out
                          }
 

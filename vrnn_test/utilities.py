@@ -44,12 +44,12 @@ class NetGen:
         if 'out2dist' in params:
             if params['out2dist'] == 'normal':
                 self.fd[name] = out_to_normal(self.fd[name], params)
-            if params['out2dist'] == 'normal_split':
-                self.fd[name] = out_to_normal_split(self.fd[name], params)
             elif params['out2dist'] == 'normal_plus_binary':
                 self.fd[name] = out_to_normal_plus_binary(self.fd[name], params)
-            elif params['out2dist'] == 'gmm':
+            elif params['out2dist'] == 'gm':
                 self.fd[name] = out_to_gm(self.fd[name], params)
+            elif params['out2dist'] == 'gm_plus_binary':
+                raise NotImplementedError
 
     # concatenates several tensors into one input to existing nn of given name
     def weave_inputs(self, name):
@@ -89,19 +89,6 @@ def general_mlp(input_tensor, params):
 
             last = ACT_FUNCS[act_key](tf.matmul(last, weights) + biases)
 
-            if 'use_batch_norm' in params and params['use_batch_norm'] == True:
-                last = batch_norm(last,
-                                  decay=0.999,
-                                  center=True,
-                                  scale=False,
-                                  epsilon=0.001,
-                                  moving_vars='moving_vars',
-                                  activation=None,
-                                  is_training=True,  # this actually necessitates a larger reworking.
-                                  trainable=True,
-                                  restore=True,
-                                  scope=None,
-                                  reuse=None)
     return last
 
 
@@ -137,32 +124,7 @@ def out_to_normal(net_fun, params):
                                                                                     stddev=params['init_sig_var']))
             cov = tf.nn.softplus(tf.matmul(net_out, cov_weights), name=name + '_softplus')
             # cov = cov + tf.constant(1.0, dtype=tf.float32, name='min_variance')
-            cov = tf.constant(0.05, dtype=tf.float32, shape=[net_out.get_shape()[0], d_dist], name='fixed_variance')
-        return mean, cov
-    return f
-
-
-def out_to_normal_split(net_fun, params):  # now old
-    dims = params['layers'][-1] / 2
-    name = params['name']
-
-    def f(in_pl):
-        with tf.name_scope(name):
-            net_out = net_fun(in_pl)
-            out_m = tf.slice(net_out, [0, 0], [-1, dims])
-            out_c = tf.slice(net_out, [0, dims], [-1, dims])
-            mean_weights = tf.get_variable(name + '_m', initializer=tf.random_normal([dims, dims], mean=0))
-            mean = tf.matmul(out_m, mean_weights)
-            # mean = tf.Print(mean, [mean, out_m, mean_weights, out_c], message=name + ' m ')
-            # mean = out_m
-            cov_weights = tf.get_variable(name + '_c', initializer=tf.random_normal([dims, dims],
-                                                                                    mean=0,
-                                                                                    stddev=params['init_sig_var']))
-            cov = tf.nn.softplus(tf.matmul(out_c, cov_weights))
-            # cov = tf.exp(tf.matmul(out_c, cov_weights))
-            # cov = tf.nn.softplus(out_c)
-            # cov = tf.exp(out_c)
-            # cov = tf.Print(cov, [cov], message=name + '_c ')
+            # cov = tf.constant(0.05, dtype=tf.float32, shape=[net_out.get_shape()[0], d_dist], name='fixed_variance')
         return mean, cov
     return f
 
@@ -188,36 +150,30 @@ def out_to_normal_plus_binary(net_fun, params):
 
 
 def out_to_gm(net_fun, params):
-    out_size = params['layers'][-1]
+    d_dist = params['dist_dim']
+    d_out = params['layers'][-1]
+    num_modes = params['modes']
     name = params['name']
-    num_splits = params['splits']
-    dims = int(out_size / (2 * num_splits) - 0.5)
 
     def f(in_pl):
         with tf.name_scope(name):
             net_out = net_fun(in_pl)
 
-            # slice output into [mean, cov, pi] chunks
             means = []
             covs = []
             pis = []
-            for split in range(num_splits):
+            for mode in range(num_modes):
                 # each iteration uses 2*dims+1 outputs
-                offset = (2*dims+1) * split
-                out_m = tf.slice(net_out, [0, offset], [-1, dims])
-                out_c = tf.slice(net_out, [0, offset + dims], [-1, dims])
-                out_p = tf.slice(net_out, [0, offset + dims + 1], [-1, 1])
-                mean_weights = tf.get_variable(name + '_m', initializer=tf.random_normal([dims, dims], mean=0))
-                mean = tf.matmul(out_m, mean_weights)
+                mean_weights = tf.get_variable(name + '_m' + str(mode), initializer=tf.random_normal([d_out, d_dist], mean=0))
+                mean = tf.matmul(net_out, mean_weights)
                 means.append(mean)
-
-                cov_weights = tf.get_variable(name + '_c', initializer=tf.random_normal([dims, dims],
-                                                                                        mean=0,
+                cov_weights = tf.get_variable(name + '_c' + str(mode), initializer=tf.random_normal([d_out, d_dist],
+                                                                                        mean=params['init_sig_bias'],
                                                                                         stddev=params['init_sig_var']))
-                cov = tf.nn.softplus(tf.matmul(out_c, cov_weights))
+                cov = tf.nn.softplus(tf.matmul(net_out, cov_weights))
                 covs.append(cov)
-
-                pi = tf.nn.softplus(out_p)
+                pi_weights = tf.get_variable(name + '_pi' + str(mode), initializer=tf.random_normal([d_out, 1], mean=0))
+                pi = tf.matmul(net_out, pi_weights)
                 pis.append(pi)
         return means, covs, pis
     return f
@@ -248,3 +204,30 @@ def plot_img_mats(mat):
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
     plt.show()
+
+
+
+# def out_to_normal_split(net_fun, params):  # now old
+#     dims = params['layers'][-1] / 2
+#     name = params['name']
+#
+#     def f(in_pl):
+#         with tf.name_scope(name):
+#             net_out = net_fun(in_pl)
+#             out_m = tf.slice(net_out, [0, 0], [-1, dims])
+#             out_c = tf.slice(net_out, [0, dims], [-1, dims])
+#             mean_weights = tf.get_variable(name + '_m', initializer=tf.random_normal([dims, dims], mean=0))
+#             mean = tf.matmul(out_m, mean_weights)
+#             # mean = tf.Print(mean, [mean, out_m, mean_weights, out_c], message=name + ' m ')
+#             # mean = out_m
+#             cov_weights = tf.get_variable(name + '_c', initializer=tf.random_normal([dims, dims],
+#                                                                                     mean=0,
+#                                                                                     stddev=params['init_sig_var']))
+#             cov = tf.nn.softplus(tf.matmul(out_c, cov_weights))
+#             # cov = tf.exp(tf.matmul(out_c, cov_weights))
+#             # cov = tf.nn.softplus(out_c)
+#             # cov = tf.exp(out_c)
+#             # cov = tf.Print(cov, [cov], message=name + '_c ')
+#         return mean, cov
+#     return f
+#

@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from vrnn_model import gaussian_kl_div, gaussian_log_p, train, vanilla_loss
+from vrnn_model import gaussian_kl_div, gaussian_log_p, optimization, loss
 
 
 def inference_plus_binary(in_pl, hid_pl, f_state, eps_z, param_dict, fun_dict, watchlist):
@@ -44,7 +44,7 @@ def loss_plus_binary_CE(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, b
         # average over samples
         ce_loss = tf.reduce_mean(ce_loss, name='avg_neg_lower_bound')
     # compute and add loss for rest
-    bound = vanilla_loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict, watchlist)
+    bound = loss(x_target, mean_0, cov_0, mean_z, cov_z, mean_x, cov_x, param_dict, watchlist)
     # return bound
     bound += ce_loss
 
