@@ -3,7 +3,7 @@ PARAM_DICT = dict()
 # data path
 PARAM_DICT['series'] = -1
 PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_200_pad_0_max_300_norm_xyonly.npy'
-PARAM_DICT['log_path'] = 'data/logs/handwriting_32'
+PARAM_DICT['log_path'] = 'data/logs/handwriting_33'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 200
 
@@ -49,7 +49,7 @@ PARAM_DICT['phi_x'] = {'name': 'phi_x',
 
 PARAM_DICT['phi_prior'] = {'name': 'phi_prior',
                            'nn_type': 'general_mlp',
-                           'activation': 'relu',
+                           'activation': 'elu',
                            'layers': [n_ht, phi_prior_out],
                            'out2dist': 'normal',
                            'init_sig_var': 0.01,
@@ -60,7 +60,7 @@ PARAM_DICT['phi_prior'] = {'name': 'phi_prior',
 
 PARAM_DICT['phi_enc'] = {'name': 'phi_enc',
                          'nn_type': 'general_mlp',
-                         'activation': 'relu',
+                         'activation': 'elu',
                          'layers': [phi_x_out + n_ht, phi_enc_out],
                          'out2dist': 'normal',
                          'init_sig_var': 0.01,
@@ -75,7 +75,7 @@ PARAM_DICT['phi_z'] = {'name': 'phi_z',
 
 PARAM_DICT['phi_dec'] = {'name': 'phi_dec',
                          'nn_type': 'general_mlp',
-                         'activation': 'relu',
+                         'activation': 'elu',
                          'layers': [phi_z_out + n_ht, phi_dec_out],
                          'out2dist': out_dist,
                          'init_sig_var': 0.01,
