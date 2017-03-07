@@ -105,16 +105,21 @@ def run_training(pd):
 
         grads = [g for g in tf.gradients(bound_final, tv) if g is not None]
         for g in grads:
-            tf.summary.histogram('grads/' + g.name, g)
+            name = g.name
+            g = tf.maximum(g, -1000)
+            g = tf.minimum(g, 1000)
+            tf.summary.histogram('grads/' + name, g)
         tf.summary.scalar('bound', bound_final)
         tf.summary.scalar('kldiv', kldiv_final)
         tf.summary.scalar('log_p', log_p_final)
 
+        names = ['mean_0', 'cov_0', 'mean_z', 'cov_z', 'mean_x', 'cov_x']
+        cuts = [40, 5, 40, 5, 10, 5]
         debug = loop_res[-1]
-        for t in debug:
-            t = tf.maximum(t, -40)
-            t = tf.minimum(t, 40)
-            tf.summary.histogram('debug/' + t.name, t)
+        for t, name, cut in zip(debug, names, cuts):
+            t = tf.maximum(t, -cut)
+            t = tf.minimum(t, cut)
+            tf.summary.histogram('debug/' + name, t)
 
         summary_op = tf.summary.merge_all()
 
