@@ -32,6 +32,14 @@ def get_train_batch_dict_generator(data, x_pl, hid_pl, eps_z, pd):
         yield d
 
 
+def get_debug_pl(pd):
+    mean_0 = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['z_dim']], name='mean_prior_debug')
+    cov_0 = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['z_dim']], name='cov_prior_debug')
+    mean_z = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['z_dim']], name='mean_z_debug')
+    cov_z = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['z_dim']], name='cov_prior_debug')
+    return [mean_0, cov_0, mean_z, cov_z]
+
+
 def run_training(pd):
     # make log directory and store param_dict
     if not os.path.exists(pd['log_path']):
@@ -64,7 +72,8 @@ def run_training(pd):
                    tf.constant(0, dtype=tf.float32, name='log_p_acc')]
         count = tf.constant(0, dtype=tf.float32, name='counter')
         f_state = netgen.fd['f_theta'].zero_state(pd['batch_size'], tf.float32)
-        loop_vars = [x_pl, hid_pl, err_acc, count, f_state, eps_z]
+        debug_tensors = get_debug_pl(pd)
+        loop_vars = [x_pl, hid_pl, err_acc, count, f_state, eps_z, debug_tensors]
 
         loop_res = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
 
@@ -94,6 +103,10 @@ def run_training(pd):
         tf.summary.scalar('bound', bound_final)
         tf.summary.scalar('kldiv', kldiv_final)
         tf.summary.scalar('log_p', log_p_final)
+
+        debug = loop_res[-1]
+        for t in debug:
+            tf.summary.histogram('debug/' + t.name, t)
 
         summary_op = tf.summary.merge_all()
 

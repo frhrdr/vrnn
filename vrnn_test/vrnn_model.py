@@ -54,7 +54,6 @@ def gm_log_p(params_out, x_target, dim):
     return log_p
 
 
-
 def gaussian_kl_div(mean_0, cov_0, mean_1, cov_1, dim):
     mean_diff = mean_1 - mean_0
     cov_1_inv = tf.reciprocal(cov_1)
@@ -97,7 +96,7 @@ def optimization(err_acc, learning_rate):
     return train_op
 
 
-def train_loop(x_pl, f_theta, err_acc, count, f_state, eps_z, param_dict, fun_dict):
+def train_loop(x_pl, f_theta, err_acc, count, f_state, eps_z, param_dict, fun_dict, debug_tensors):
     x_t = tf.squeeze(tf.slice(x_pl, [tf.to_int32(count), 0, 0], [1, -1, -1]))
     eps_z_t = tf.squeeze(tf.slice(eps_z, [tf.to_int32(count), 0, 0], [1, -1, -1]))
     mean_0, cov_0, mean_z, cov_z, params_out, f_theta, f_state = inference(x_t, f_theta, f_state, eps_z_t,
@@ -109,14 +108,15 @@ def train_loop(x_pl, f_theta, err_acc, count, f_state, eps_z, param_dict, fun_di
     log_p_acc = err_acc[2] + log_p_step
     err_acc = [bound_acc, kldiv_acc, log_p_acc]
 
+    debug_tensors = [mean_0, cov_0, mean_z, cov_z]
     count += 1
-    return x_pl, f_theta, err_acc, count, f_state, eps_z
+    return x_pl, f_theta, err_acc, count, f_state, eps_z, debug_tensors
 
 
 def get_train_loop_fun(param_dict, fun_dict):
     # function wrapper to assign the dicts. return value can be looped with tf.while_loop
-    def train_loop_fun(x_pl, hid_pl, err_acc, count, f_state, eps_z):
-        return train_loop(x_pl, hid_pl, err_acc, count, f_state, eps_z, param_dict, fun_dict)
+    def train_loop_fun(x_pl, hid_pl, err_acc, count, f_state, eps_z, debug_tensors):
+        return train_loop(x_pl, hid_pl, err_acc, count, f_state, eps_z, param_dict, fun_dict, debug_tensors)
     return train_loop_fun
 
 

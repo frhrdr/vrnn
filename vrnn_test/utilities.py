@@ -172,7 +172,6 @@ def out_to_gm(net_fun, params):
                                                                        stddev=params['init_sig_var']))
             cov = tf.reshape(tf.nn.softplus(tf.matmul(net_out, cov_weights)), [-1, num_modes, d_dist])
 
-
         return mean, cov, pi
     return f
 
