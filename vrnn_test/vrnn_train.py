@@ -125,7 +125,7 @@ def run_training(pd):
             tf.summary.histogram('debug/raw/' + name, t)
             t = tf.maximum(t, -cut)
             t = tf.minimum(t, cut)
-            tf.summary.histogram('debug/cut' + name, t)
+            tf.summary.histogram('debug/cut/' + name, t)
 
         summary_op = tf.summary.merge_all()
 
