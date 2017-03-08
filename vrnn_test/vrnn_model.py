@@ -91,7 +91,8 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
 def optimization(err_acc, learning_rate):
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     tvars = tf.trainable_variables()
-    grads = tf.gradients(err_acc, tvars)
+    # grads = tf.gradients(err_acc, tvars)
+    grads = [tf.clip_by_value(k, -1000, 1000) for k in tf.gradients(err_acc, tvars)]
     train_op = optimizer.apply_gradients(zip(grads, tvars))
     return train_op
 
