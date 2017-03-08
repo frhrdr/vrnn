@@ -16,7 +16,7 @@ PARAM_DICT['batch_size'] = 100
 PARAM_DICT['x_dim'] = 2
 PARAM_DICT['z_dim'] = 200
 PARAM_DICT['seq_length'] = 200
-PARAM_DICT['learning_rate'] = 0.001
+PARAM_DICT['learning_rate'] = 0.003
 PARAM_DICT['max_iter'] = 10000
 PARAM_DICT['hid_state_size'] = 2000
 PARAM_DICT['masking'] = False
@@ -44,12 +44,12 @@ phi_dec_out = 200  # 200
 # specify each net
 PARAM_DICT['phi_x'] = {'name': 'phi_x',
                        'nn_type': 'general_mlp',
-                       'activation': 'elu',
+                       'activation': 'relu',
                        'layers': [n_in, phi_x_out]}
 
 PARAM_DICT['phi_prior'] = {'name': 'phi_prior',
                            'nn_type': 'general_mlp',
-                           'activation': 'elu',
+                           'activation': 'relu',
                            'layers': [n_ht, phi_prior_out],
                            'out2dist': 'normal',
                            'init_sig_var': 0.01,
@@ -59,7 +59,7 @@ PARAM_DICT['phi_prior'] = {'name': 'phi_prior',
 
 PARAM_DICT['phi_enc'] = {'name': 'phi_enc',
                          'nn_type': 'general_mlp',
-                         'activation': 'elu',
+                         'activation': 'relu',
                          'layers': [phi_x_out + n_ht, phi_enc_out],
                          'out2dist': 'normal',
                          'init_sig_var': 0.01,
@@ -69,12 +69,12 @@ PARAM_DICT['phi_enc'] = {'name': 'phi_enc',
 
 PARAM_DICT['phi_z'] = {'name': 'phi_z',
                        'nn_type': 'general_mlp',
-                       'activation': 'elu',
+                       'activation': 'relu',
                        'layers': [n_z, phi_z_out]}
 
 PARAM_DICT['phi_dec'] = {'name': 'phi_dec',
                          'nn_type': 'general_mlp',
-                         'activation': 'elu',
+                         'activation': 'relu',
                          'layers': [phi_z_out + n_ht, phi_dec_out],
                          'out2dist': out_dist,
                          'init_sig_var': 0.01,

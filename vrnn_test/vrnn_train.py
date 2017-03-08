@@ -100,19 +100,20 @@ def run_training(pd):
         tv = tf.trainable_variables()
         tv_summary = [tf.reduce_mean(k) for k in tv]
         # tv_print = tf.Print(bound_final, tv_summary, message='tv ')
-        for v in tv:
-            tf.summary.histogram('vars/' + v.name, v)
 
-        grads = [g for g in tf.gradients(bound_final, tv) if g is not None]
-        for g in grads:
-            name = g.name
-            tf.summary.histogram('grads/raw/' + name, g)
-            g = tf.maximum(g, -1000)
-            g = tf.minimum(g, 1000)
-            tf.summary.histogram('grads/cut1k/' + name, g)
-            g = tf.maximum(g, -10)
-            g = tf.minimum(g, 10)
-            tf.summary.histogram('grads/cut10/' + name, g)
+        # for v in tv:
+        #     tf.summary.histogram('vars/' + v.name, v)
+        #
+        # grads = [g for g in tf.gradients(bound_final, tv) if g is not None]
+        # for g in grads:
+        #     name = g.name
+        #     tf.summary.histogram('grads/raw/' + name, g)
+        #     g = tf.maximum(g, -1000)
+        #     g = tf.minimum(g, 1000)
+        #     tf.summary.histogram('grads/cut1k/' + name, g)
+        #     g = tf.maximum(g, -10)
+        #     g = tf.minimum(g, 10)
+        #     tf.summary.histogram('grads/cut10/' + name, g)
 
         tf.summary.scalar('bound', bound_final)
         tf.summary.scalar('kldiv', kldiv_final)
