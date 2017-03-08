@@ -2,8 +2,8 @@ PARAM_DICT = dict()
 
 # data path
 PARAM_DICT['series'] = -1
-PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_200_pad_500_max_300_norm_xyonly.npy'
-PARAM_DICT['log_path'] = 'data/logs/handwriting_38'
+PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_200_pad_0_max_300_norm_xyonly.npy'
+PARAM_DICT['log_path'] = 'data/logs/handwriting_39'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 200
 
@@ -19,7 +19,7 @@ PARAM_DICT['seq_length'] = 200
 PARAM_DICT['learning_rate'] = 0.001
 PARAM_DICT['max_iter'] = 10000
 PARAM_DICT['hid_state_size'] = 2000
-PARAM_DICT['masking'] = True
+PARAM_DICT['masking'] = False
 PARAM_DICT['mask_value'] = 500
 
 # infer some necessary network sizes
