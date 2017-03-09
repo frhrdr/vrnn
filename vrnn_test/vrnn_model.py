@@ -34,7 +34,8 @@ def gaussian_log_p(params_out, x_target, dim):
     x_square = tf.reduce_sum((x_diff / cov_x) * x_diff, axis=[1])
     log_x_exp = -0.5 * x_square
     log_cov_x_det = tf.reduce_sum(tf.log(cov_x), axis=[1])
-    log_x_norm = -0.5 * (dim * tf.log(2 * np.pi) + log_cov_x_det)
+    # log_x_norm = -0.5 * (dim * tf.log(2 * np.pi) + log_cov_x_det)
+    log_x_norm = -0.5 * (dim * 1.83787 + log_cov_x_det)
     log_p = log_x_norm + log_x_exp
     return log_p, log_x_norm, log_cov_x_det
 
