@@ -75,7 +75,9 @@ def run_training(pd):
         hid_pl = tf.placeholder(tf.float32, shape=(pd['batch_size'], pd['hid_state_size']), name='ht_init')
         err_acc = [tf.constant(0, dtype=tf.float32, name='bound_acc'),
                    tf.constant(0, dtype=tf.float32, name='kldiv_acc'),
-                   tf.constant(0, dtype=tf.float32, name='log_p_acc')]
+                   tf.constant(0, dtype=tf.float32, name='log_p_acc'),
+                   tf.constant(0, dtype=tf.float32, name='norm_acc'),
+                   tf.constant(0, dtype=tf.float32, name='exp_acc')]
         count = tf.constant(0, dtype=tf.float32, name='counter')
         f_state = netgen.fd['f_theta'].zero_state(pd['batch_size'], tf.float32)
         debug_tensors = get_debug_pl(pd)
@@ -90,6 +92,8 @@ def run_training(pd):
         bound_final = err_final[0]
         kldiv_final = err_final[1]
         log_p_final = err_final[2]
+        norm_final = err_final[3]
+        exp_final = err_final[4]
 
         # train_op, grad_print = model.train(bound_final, pd['learning_rate'])
         train_op = model.optimization(bound_final, pd['learning_rate'])
@@ -118,6 +122,8 @@ def run_training(pd):
         tf.summary.scalar('bound', bound_final)
         tf.summary.scalar('kldiv', kldiv_final)
         tf.summary.scalar('log_p', log_p_final)
+        tf.summary.scalar('norm', norm_final)
+        tf.summary.scalar('exp', exp_final)
 
         names = ['mean_0', 'cov_0', 'mean_z', 'cov_z', 'mean_x', 'cov_x']
         cuts = [40, 5, 40, 5, 10, 5]

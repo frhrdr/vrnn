@@ -5,19 +5,28 @@ from params import PARAM_DICT
 from iamondb_reader import mat_to_plot
 import numpy as np
 
-mode = 1
+mode = 2
 
 if mode == 1:  # run training
     run_training(PARAM_DICT)
 elif mode == 2:  # run generation, then plot the results
-    x = run_generation(PARAM_DICT['log_path'] + '/params.pkl', ckpt_file=PARAM_DICT['log_path'] + '/ckpt-2000')
+    x = run_generation(PARAM_DICT['log_path'] + '/params.pkl', ckpt_file=PARAM_DICT['log_path'] + '/ckpt-3000')
 
-    meanx = 7.65791469
-    meany = 0.54339499
-    stdx = 33.82594281
-    stdy = 36.81890347
+    # mask 200 cut
     # [ 7.65791469  0.54339499  0.03887757]
     # [ 33.82594281  36.81890347   0.19330315]
+    # meanx = 7.65791469
+    # meany = 0.54339499
+    # stdx = 33.82594281
+    # stdy = 36.81890347
+
+    # no mask 200 cut
+    # [ 7.61830955  0.54058467  0.03867651]
+    # [ 33.74283029  36.72359088   0.19282281]
+    meanx = 7.61830955
+    meany = 0.54058467
+    stdx = 33.74283029
+    stdy = 36.72359088
 
     print(x.shape)
     for idx in range(10):

@@ -36,7 +36,7 @@ def gaussian_log_p(params_out, x_target, dim):
     log_cov_x_det = tf.reduce_sum(tf.log(cov_x), axis=[1])
     log_x_norm = -0.5 * (dim * tf.log(2 * np.pi) + log_cov_x_det)
     log_p = log_x_norm + log_x_exp
-    return log_p
+    return log_p, log_x_norm, log_x_exp
 
 
 def gm_log_p(params_out, x_target, dim):
@@ -51,7 +51,7 @@ def gm_log_p(params_out, x_target, dim):
     log_cov_x_det = tf.reduce_sum(tf.log(cov_x), axis=[2])
     log_x_norm = -0.5 * (dim * tf.log(2 * np.pi) + log_cov_x_det) + pi_x
     log_p = tf.reduce_logsumexp(log_x_norm + log_x_exp, axis=[0])
-    return log_p
+    return log_p, log_x_norm, log_x_exp
 
 
 def gaussian_kl_div(mean_0, cov_0, mean_1, cov_1, dim):
@@ -69,9 +69,9 @@ def gaussian_kl_div(mean_0, cov_0, mean_1, cov_1, dim):
 def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
     kl_div = gaussian_kl_div(mean_z, cov_z, mean_0, cov_0, param_dict['z_dim'])
     if param_dict['model'] == 'gauss_out':
-        log_p = gaussian_log_p(params_out, x_target, param_dict['z_dim'])
+        log_p, log_x_norm, log_x_exp = gaussian_log_p(params_out, x_target, param_dict['z_dim'])
     else:
-        log_p = gm_log_p(params_out, x_target, param_dict['z_dim'])
+        log_p, log_x_norm, log_x_exp = gm_log_p(params_out, x_target, param_dict['z_dim'])
 
     if param_dict['masking']:
         zero_vals = tf.abs(x_target - tf.constant(param_dict['mask_value'], dtype=tf.float32))
@@ -85,14 +85,16 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
         log_p = tf.reduce_mean(log_p, name='log_p_scalar')
         bound = kl_div - log_p
 
-    return bound, kl_div, log_p
+    norm = tf.reduce_mean(log_x_norm, name='norm_scalar')
+    exp = tf.reduce_mean(log_x_exp, name='exp_scalar')
+    return bound, kl_div, log_p, norm, exp
 
 
 def optimization(err_acc, learning_rate):
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     tvars = tf.trainable_variables()
     # grads = tf.gradients(err_acc, tvars)
-    grads = [tf.clip_by_value(k, -1000, 1000) for k in tf.gradients(err_acc, tvars)]
+    grads = [tf.clip_by_value(k, -100, 100) for k in tf.gradients(err_acc, tvars)]
     train_op = optimizer.apply_gradients(zip(grads, tvars))
     return train_op
 
@@ -102,12 +104,15 @@ def train_loop(x_pl, f_theta, err_acc, count, f_state, eps_z, param_dict, fun_di
     eps_z_t = tf.squeeze(tf.slice(eps_z, [tf.to_int32(count), 0, 0], [1, -1, -1]))
     mean_0, cov_0, mean_z, cov_z, params_out, f_theta, f_state = inference(x_t, f_theta, f_state, eps_z_t,
                                                                            param_dict, fun_dict)
-    bound_step, kldiv_step, log_p_step = loss(x_t, mean_0, cov_0, mean_z, cov_z,
-                                              params_out, param_dict)
+    bound_step, kldiv_step, log_p_step, norm_step, exp_step = loss(x_t, mean_0, cov_0, mean_z, cov_z,
+                                                                   params_out, param_dict)
     bound_acc = err_acc[0] + bound_step
     kldiv_acc = err_acc[1] + kldiv_step
     log_p_acc = err_acc[2] + log_p_step
-    err_acc = [bound_acc, kldiv_acc, log_p_acc]
+    norm_acc = err_acc[3] + norm_step
+    exp_acc = err_acc[4] + exp_step
+
+    err_acc = [bound_acc, kldiv_acc, log_p_acc, norm_acc, exp_acc]
     if param_dict['model'] == 'gm_out':
         mean_x, cov_x, _ = params_out
     else:
