@@ -36,7 +36,7 @@ def gaussian_log_p(params_out, x_target, dim):
     log_cov_x_det = tf.reduce_sum(tf.log(cov_x), axis=[1])
     log_x_norm = -0.5 * (dim * tf.log(2 * np.pi) + log_cov_x_det)
     log_p = log_x_norm + log_x_exp
-    return log_p, log_cov_x_det, log_x_exp
+    return log_p, log_x_norm, log_cov_x_det
 
 
 def gm_log_p(params_out, x_target, dim):
