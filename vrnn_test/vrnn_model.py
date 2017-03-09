@@ -70,9 +70,9 @@ def gaussian_kl_div(mean_0, cov_0, mean_1, cov_1, dim):
 def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
     kl_div = gaussian_kl_div(mean_z, cov_z, mean_0, cov_0, param_dict['z_dim'])
     if param_dict['model'] == 'gauss_out':
-        log_p, log_x_norm, log_x_exp = gaussian_log_p(params_out, x_target, param_dict['z_dim'])
+        log_p, log_x_norm, log_x_exp = gaussian_log_p(params_out, x_target, param_dict['x_dim'])
     else:
-        log_p, log_x_norm, log_x_exp = gm_log_p(params_out, x_target, param_dict['z_dim'])
+        log_p, log_x_norm, log_x_exp = gm_log_p(params_out, x_target, param_dict['x_dim'])
 
     if param_dict['masking']:
         zero_vals = tf.abs(x_target - tf.constant(param_dict['mask_value'], dtype=tf.float32))
