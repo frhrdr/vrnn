@@ -114,7 +114,7 @@ def train_loop(x_pl, f_theta, err_acc, count, f_state, eps_z, param_dict, fun_di
     exp_acc = err_acc[4] + exp_step
     diff_acc = err_acc[5] + diff_step
 
-    err_acc = [bound_acc, kldiv_acc, log_p_acc, norm_acc, exp_acc]
+    err_acc = [bound_acc, kldiv_acc, log_p_acc, norm_acc, exp_acc, diff_acc]
     if param_dict['model'] == 'gm_out':
         mean_x, cov_x, _ = params_out
     else:
