@@ -95,7 +95,7 @@ def optimization(err_acc, learning_rate):
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     tvars = tf.trainable_variables()
     # grads = tf.gradients(err_acc, tvars)
-    grads = [tf.clip_by_value(k, -100, 100) for k in tf.gradients(err_acc, tvars)]
+    grads = [tf.clip_by_value(k, -100, 100) for k in tf.gradients(err_acc, tvars) if k is not None]
     train_op = optimizer.apply_gradients(zip(grads, tvars))
     return train_op
 
