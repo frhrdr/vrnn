@@ -72,7 +72,7 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
         log_p, log_x_norm, log_x_exp, abs_diff = gaussian_log_p(params_out, x_target, param_dict['x_dim'])
     else:
         log_p, log_x_norm, log_x_exp, abs_diff = gm_log_p(params_out, x_target, param_dict['x_dim'])
-
+    kl_div = 0
     if param_dict['masking']:
         zero_vals = tf.abs(x_target - tf.constant(param_dict['mask_value'], dtype=tf.float32))
         mask = tf.sign(tf.reduce_max(zero_vals, axis=1))
