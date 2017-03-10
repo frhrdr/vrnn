@@ -27,8 +27,8 @@ def get_train_batch_dict_generator(data, x_pl, hid_pl, eps_z, pd):
             end_idx = end_idx % data.shape[1]
 
         d[hid_pl] = np.zeros((pd['batch_size'], pd['hid_state_size']))
-        d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['z_dim']))
-        # d[eps_z] = np.zeros((pd['seq_length'], pd['batch_size'], pd['z_dim']))  # for debugging
+        # d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['z_dim']))
+        d[eps_z] = np.zeros((pd['seq_length'], pd['batch_size'], pd['z_dim']))  # for debugging
         yield d
 
 
