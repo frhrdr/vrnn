@@ -180,10 +180,10 @@ def get_gen_batch_dict_generator(hid_pl, eps_z, eps_out, pd):
     d = {}
     while True:
         d[hid_pl] = np.zeros((pd['batch_size'], pd['hid_state_size']))
-        d[eps_z] = np.zeros((pd['seq_length'], pd['batch_size'], pd['z_dim']))
-        # d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['z_dim']))
-        d[eps_x] = np.zeros((pd['seq_length'], pd['batch_size'], pd['x_dim']))
-        # d[eps_x] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['x_dim']))
+        # d[eps_z] = np.zeros((pd['seq_length'], pd['batch_size'], pd['z_dim']))
+        d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['z_dim']))
+        # d[eps_x] = np.zeros((pd['seq_length'], pd['batch_size'], pd['x_dim']))
+        d[eps_x] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['x_dim']))
         if eps_pi is not None:
             d[eps_pi] = np.random.randint(0, size=(pd['seq_length'], pd['batch_size']))
         yield d

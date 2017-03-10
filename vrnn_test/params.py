@@ -3,7 +3,7 @@ PARAM_DICT = dict()
 # data path
 PARAM_DICT['series'] = -1
 PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_200_pad_0_max_300_norm_xyonly.npy'
-PARAM_DICT['log_path'] = 'data/logs/handwriting_44'
+PARAM_DICT['log_path'] = 'data/logs/handwriting_45'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 200
 
@@ -16,9 +16,9 @@ PARAM_DICT['batch_size'] = 100
 PARAM_DICT['x_dim'] = 2
 PARAM_DICT['z_dim'] = 2
 PARAM_DICT['seq_length'] = 200
-PARAM_DICT['learning_rate'] = 0.00003
+PARAM_DICT['learning_rate'] = 0.0001
 PARAM_DICT['max_iter'] = 10000
-PARAM_DICT['hid_state_size'] = 200
+PARAM_DICT['hid_state_size'] = 400
 PARAM_DICT['masking'] = False
 PARAM_DICT['mask_value'] = 500
 
@@ -35,11 +35,11 @@ else:
     out_dist = 'gm'
 
 # assign shared variables
-phi_x_out = 20  # 200
-phi_z_out = 20  # 200
-phi_enc_out = 20  # 200
-phi_prior_out = 20  # 200
-phi_dec_out = 20  # 200
+phi_x_out = 50  # 200
+phi_z_out = 50  # 200
+phi_enc_out = 50  # 200
+phi_prior_out = 50  # 200
+phi_dec_out = 50  # 200
 
 # specify each net
 PARAM_DICT['phi_x'] = {'name': 'phi_x',
