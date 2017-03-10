@@ -51,12 +51,9 @@ def mat_to_plot(mat, meanx=0., meany=0., stdx=1., stdy=1.):
 
     mat[:, 1] = - mat[:, 1]  # flip y axis for accurate plot
 
-
     stroke_ends = np.argwhere(mat[:, 2])  # single out individual strokes
     begin = 0
-    print(stroke_ends)
     for end in stroke_ends:
-        print(end)
         end = int(end)
         plt.axis('equal')
         plt.plot(mat[begin:end, 0], mat[begin:end, 1], c='blue')
@@ -178,8 +175,10 @@ def no_values_check(val):
 # np.save('data/handwriting/rough_cut_200_pad_0_max_300_xyonly.npy', mat[:, :, :2])
 # print(m)
 # print(s)
-# a = np.load('data/handwriting/rough_cut_200_pad_0_max_300_xyonly.npy')
-# i = 0
+# a = np.load('data/handwriting/rough_cut_200_pad_0_max_300_norm_xyonly.npy')
+# i = 1000
+# m =[7.61830955,  0.54058467,  0.03867651]  # [0., 0.]  #
+# s = [33.74283029,  36.72359088,   0.19282281]  # [1., 1.]  #
 # mat_to_plot(a[:, i, :], m[0], m[1], s[0], s[1])
 
 
