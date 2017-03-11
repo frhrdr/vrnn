@@ -135,7 +135,7 @@ def optimization(err_acc, learning_rate):
     return train_op
 
 
-def train_loop(x_pl, f_theta, err_acc, count, f_state, eps_z, param_dict, fun_dict, tracked_tensors):
+def train_loop(x_pl, f_theta, bound_acc, count, f_state, eps_z, param_dict, fun_dict, tracked_tensors):
     x_t = tf.squeeze(tf.slice(x_pl, [tf.to_int32(count), 0, 0], [1, -1, -1]))
     eps_z_t = tf.squeeze(tf.slice(eps_z, [tf.to_int32(count), 0, 0], [1, -1, -1]))
     mean_0, cov_0, mean_z, cov_z, params_out, f_theta, f_state = inference(x_t, f_theta, f_state, eps_z_t,
@@ -146,7 +146,7 @@ def train_loop(x_pl, f_theta, err_acc, count, f_state, eps_z, param_dict, fun_di
     sub_losses_acc, dist_params = tracked_tensors
     # kldiv_step, log_p_step, norm_step, exp_step, diff_step = sub_losses_step
 
-    bound_acc = err_acc + bound_step
+    bound_acc += bound_step
     sub_losses_acc = [a + s for (a, s) in zip(sub_losses_acc, sub_losses_step)]
     # kldiv_acc = err_acc[1] + kldiv_step
     # log_p_acc = err_acc[2] + log_p_step
@@ -163,7 +163,7 @@ def train_loop(x_pl, f_theta, err_acc, count, f_state, eps_z, param_dict, fun_di
     dist_params = [mean_0, cov_0, mean_z, cov_z, mean_x, cov_x]
     tracked_tensors = [sub_losses_acc, dist_params]
     count += 1
-    return x_pl, f_theta, err_acc, count, f_state, eps_z, tracked_tensors
+    return x_pl, f_theta, bound_acc, count, f_state, eps_z, tracked_tensors
 
 
 def get_train_loop_fun(param_dict, fun_dict):
