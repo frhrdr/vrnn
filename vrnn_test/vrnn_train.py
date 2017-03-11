@@ -142,8 +142,14 @@ def run_training(pd):
         with tf.Session() as sess:
             summary_writer = tf.summary.FileWriter(pd['log_path'] + '/summaries', sess.graph)
             start_time = time.time()
-            init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
-            sess.run(init_op)
+
+            if pd['load_path'] is None:
+                init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+                sess.run(init_op)
+            else:
+                saver = tf.train.Saver()
+                saver.restore(sess, pd['load_path'])
+
             saver = tf.train.Saver()
 
             for it in range(pd['max_iter']):

@@ -66,12 +66,32 @@ def gaussian_kl_div(mean_0, cov_0, mean_1, cov_1, dim):
     return kl_div
 
 
+def ce_loss(logits_out, bin_target):
+    return tf.nn.sigmoid_cross_entropy_with_logits(logits=logits_out, labels=bin_target, name='ce_loss')
+
+
 def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
     kl_div = gaussian_kl_div(mean_z, cov_z, mean_0, cov_0, param_dict['z_dim'])
     if param_dict['model'] == 'gauss_out':
         log_p, log_x_norm, log_x_exp, abs_diff = gaussian_log_p(params_out, x_target, param_dict['x_dim'])
-    else:
+    elif param_dict['model'] == 'gm_out':
         log_p, log_x_norm, log_x_exp, abs_diff = gm_log_p(params_out, x_target, param_dict['x_dim'])
+    elif param_dict['model'] == 'gauss_out_plus_bin':
+        # slice off
+        dist_target = tf.slice(x_target, [0, 0], [-1, -2])
+        bin_target = tf.slice(x_target, [0, -1], [-1, 1])
+        log_p, log_x_norm, log_x_exp, abs_diff = gaussian_log_p(params_out[:-1], dist_target, param_dict['x_dim'])
+        char_ce = ce_loss(params_out[-1], bin_target)
+        log_p -= char_ce
+    elif param_dict['model'] == 'gm_out_plus_bin':
+        # slice off
+        dist_target = tf.slice(x_target, [0, 0], [-1, -2])
+        bin_target = tf.slice(x_target, [0, -1], [-1, 1])
+        log_p, log_x_norm, log_x_exp, abs_diff = gm_log_p(params_out[:-1], dist_target, param_dict['x_dim'])
+        char_ce = ce_loss(params_out[-1], bin_target)
+        log_p -= char_ce
+    else:
+        raise NotImplementedError
 
     if param_dict['masking']:
         zero_vals = tf.abs(x_target - tf.constant(param_dict['mask_value'], dtype=tf.float32))

@@ -3,9 +3,10 @@ PARAM_DICT = dict()
 # data path
 PARAM_DICT['series'] = -1
 PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_200_pad_0_max_300_norm_xyonly.npy'
-PARAM_DICT['log_path'] = 'data/logs/handwriting_45'
+PARAM_DICT['log_path'] = 'data/logs/handwriting_46'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 200
+PARAM_DICT['load_path'] = 'data/logs/handwriting_45/ckpt-7000'
 
 # other architectures put on halt
 PARAM_DICT['model'] = 'gauss_out'  # options: gauss_out, gm_out

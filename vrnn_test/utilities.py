@@ -144,8 +144,8 @@ def out_to_normal_plus_binary(net_fun, params):
                                                                                     stddev=params['init_sig_var']))
             cov = tf.nn.softplus(tf.matmul(net_out, cov_weights))
             bin_weights = tf.get_variable(name + '_bin', initializer=tf.random_normal([d_out, 1], mean=0, stddev=0.01))
-            binary = tf.nn.tanh(tf.matmul(net_out, bin_weights))
-        return mean, cov, binary
+            logits = tf.matmul(net_out, bin_weights)
+        return mean, cov, logits
     return f
 
 
