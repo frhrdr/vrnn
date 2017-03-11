@@ -12,9 +12,17 @@ def sample(params, noise, dist='gauss'):
         s = mean + tf.sqrt(cov) * noise
     elif 'gm' in dist:
         means, covs, pis = params
-        choice = tf.multinomial(pis, num_samples=1)
+        choices = tf.multinomial(pis, num_samples=1)
+        ids = tf.constant(range(choices.get_shape()[0]), dtype=tf.int64, shape=(choices.get_shape()[0], 1))
+        idx_tensor = tf.concat([ids, choices], axis=1)
+        chosen_means = tf.gather_nd(means, idx_tensor)
+        chosen_covs = tf.gather_nd(covs, idx_tensor)
         eps_x, eps_pi = noise
-        s = means[choice] + tf.sqrt(covs[choice]) * eps_x
+        s = chosen_means + tf.sqrt(chosen_covs) * eps_x
+
+        # c0 = tf.re
+        hist = tf.histogram_fixed_width(tf.to_float(choices), value_range=[0.0, 5.0], nbins=10)
+        s = tf.Print(s, [tf.reduce_mean(pis, axis=[0]), hist], message='gm_x_samples_pi_samples', summarize=10)
     else:
         raise NotImplementedError
 
@@ -49,7 +57,8 @@ def gaussian_log_p(params_out, x_target, dim):
 
 
 def gm_log_p(params_out, x_target, dim):
-    mean_x, cov_x, pi_x = params_out
+    mean_x, cov_x, pi_x_logit = params_out
+    pi_x = tf.nn.softmax(pi_x_logit)
     mean_x = tf.transpose(mean_x, perm=[1, 0, 2])
     cov_x = tf.transpose(cov_x, perm=[1, 0, 2])
     pi_x = tf.transpose(pi_x, perm=[1, 0])

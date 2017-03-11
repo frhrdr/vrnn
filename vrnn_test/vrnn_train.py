@@ -189,7 +189,7 @@ def get_gen_batch_dict_generator(hid_pl, eps_z, eps_out, pd):
         # d[eps_x] = np.zeros((pd['seq_length'], pd['batch_size'], pd['x_dim']))
         d[eps_x] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['x_dim']))
         if eps_pi is not None:
-            d[eps_pi] = np.random.randint(0, size=(pd['seq_length'], pd['batch_size']))
+            d[eps_pi] = np.random.randint(1, size=(pd['seq_length'], pd['batch_size']))
         yield d
 
 

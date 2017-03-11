@@ -7,8 +7,8 @@ from tensorflow.contrib.slim import batch_norm
 
 ACT_FUNCS = {'relu': tf.nn.relu,
              'tanh': tf.nn.tanh,
-             'elu': tf.nn.elu
-            }
+             'elu': tf.nn.elu}
+
 
 class NetGen:
 
@@ -160,7 +160,7 @@ def out_to_gm(net_fun, params):
             net_out = net_fun(in_pl)
 
             pi_weights = tf.get_variable(name + '_pi', initializer=tf.random_normal([d_out, num_modes], mean=0))
-            pi = tf.nn.softmax(tf.matmul(net_out, pi_weights))
+            pi_logit = tf.matmul(net_out, pi_weights)
 
             mean_weights = tf.get_variable(name + '_m',
                                            initializer=tf.random_normal([d_out, num_modes * d_dist], mean=0))
@@ -172,7 +172,7 @@ def out_to_gm(net_fun, params):
                                                                        stddev=params['init_sig_var']))
             cov = tf.reshape(tf.nn.softplus(tf.matmul(net_out, cov_weights)), [-1, num_modes, d_dist])
 
-        return mean, cov, pi
+        return mean, cov, pi_logit
     return f
 
 
