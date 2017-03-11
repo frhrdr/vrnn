@@ -203,7 +203,6 @@ def plot_img_mats(mat):
     plt.show()
 
 
-
 # def out_to_normal_split(net_fun, params):  # now old
 #     dims = params['layers'][-1] / 2
 #     name = params['name']

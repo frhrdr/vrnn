@@ -12,8 +12,9 @@ def sample(params, noise, dist='gauss'):
         s = mean + tf.sqrt(cov) * noise
     elif 'gm' in dist:
         means, covs, pis = params
+        choice = tf.multinomial(pis, num_samples=1)
         eps_x, eps_pi = noise
-        s = means[eps_pi] + tf.sqrt(covs[eps_pi]) * eps_x
+        s = means[choice] + tf.sqrt(covs[choice]) * eps_x
     else:
         raise NotImplementedError
 
@@ -79,6 +80,8 @@ def ce_loss(logits_out, bin_target):
 
 
 def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
+    maybe_ce = []
+
     kl_div = gaussian_kl_div(mean_z, cov_z, mean_0, cov_0, param_dict['z_dim'])
     if param_dict['model'] == 'gauss_out':
         log_p, log_x_norm, log_x_exp, abs_diff = gaussian_log_p(params_out, x_target, param_dict['x_dim'])
@@ -89,13 +92,13 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
         bin_target = tf.slice(x_target, [0, -1], [-1, 1])
         log_p, log_x_norm, log_x_exp, abs_diff = gaussian_log_p(params_out[:-1], dist_target, param_dict['x_dim'])
         char_ce = ce_loss(params_out[-1], bin_target)
-        log_p -= char_ce
+        maybe_ce = tf.reduce_mean(char_ce)
     elif param_dict['model'] == 'gm_out_plus_bin':
         dist_target = tf.slice(x_target, [0, 0], [-1, -2])
         bin_target = tf.slice(x_target, [0, -1], [-1, 1])
         log_p, log_x_norm, log_x_exp, abs_diff = gm_log_p(params_out[:-1], dist_target, param_dict['x_dim'])
         char_ce = ce_loss(params_out[-1], bin_target)
-        log_p -= char_ce
+        maybe_ce = tf.reduce_mean(char_ce)
     else:
         raise NotImplementedError
 
@@ -107,14 +110,19 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
         kl_div = tf.reduce_sum(kl_div * mask, name='kl_div_sum') / num_live_samples
         bound = kl_div - log_p
     else:
-        kl_div = tf.reduce_mean(kl_div, name='kldiv_scalar')
-        log_p = tf.reduce_mean(log_p, name='log_p_scalar')
+        kl_div = tf.reduce_mean(kl_div)
+        log_p = tf.reduce_mean(log_p)
         bound = kl_div - log_p
 
-    norm = tf.reduce_mean(log_x_norm, name='norm_scalar')
-    exp = tf.reduce_mean(log_x_exp, name='exp_scalar')
-    diff = tf.reduce_mean(abs_diff, name='diff_scalar')
-    return bound, kl_div, log_p, norm, exp, diff
+    if 'bin' in param_dict['model']:
+        bound = bound + maybe_ce[0]
+
+    norm = tf.reduce_mean(log_x_norm)
+    exp = tf.reduce_mean(log_x_exp)
+    diff = tf.reduce_mean(abs_diff)
+    sub_losses = [kl_div, log_p, norm, exp, diff] + maybe_ce
+
+    return bound, sub_losses
 
 
 def optimization(err_acc, learning_rate):
@@ -127,29 +135,35 @@ def optimization(err_acc, learning_rate):
     return train_op
 
 
-def train_loop(x_pl, f_theta, err_acc, count, f_state, eps_z, param_dict, fun_dict, debug_tensors):
+def train_loop(x_pl, f_theta, err_acc, count, f_state, eps_z, param_dict, fun_dict, tracked_tensors):
     x_t = tf.squeeze(tf.slice(x_pl, [tf.to_int32(count), 0, 0], [1, -1, -1]))
     eps_z_t = tf.squeeze(tf.slice(eps_z, [tf.to_int32(count), 0, 0], [1, -1, -1]))
     mean_0, cov_0, mean_z, cov_z, params_out, f_theta, f_state = inference(x_t, f_theta, f_state, eps_z_t,
                                                                            param_dict, fun_dict)
-    bound_step, kldiv_step, log_p_step, norm_step, exp_step, diff_step = loss(x_t, mean_0, cov_0, mean_z, cov_z,
-                                                                   params_out, param_dict)
-    bound_acc = err_acc[0] + bound_step
-    kldiv_acc = err_acc[1] + kldiv_step
-    log_p_acc = err_acc[2] + log_p_step
-    norm_acc = err_acc[3] + norm_step
-    exp_acc = err_acc[4] + exp_step
-    diff_acc = err_acc[5] + diff_step
+    bound_step, sub_losses_step = loss(x_t, mean_0, cov_0, mean_z, cov_z,
+                                       params_out, param_dict)
 
-    err_acc = [bound_acc, kldiv_acc, log_p_acc, norm_acc, exp_acc, diff_acc]
+    sub_losses_acc, dist_params = tracked_tensors
+    # kldiv_step, log_p_step, norm_step, exp_step, diff_step = sub_losses_step
+
+    bound_acc = err_acc + bound_step
+    sub_losses_acc = [a + s for (a, s) in zip(sub_losses_acc, sub_losses_step)]
+    # kldiv_acc = err_acc[1] + kldiv_step
+    # log_p_acc = err_acc[2] + log_p_step
+    # norm_acc = err_acc[3] + norm_step
+    # exp_acc = err_acc[4] + exp_step
+    # diff_acc = err_acc[5] + diff_step
+    # err_acc = [bound_acc, kldiv_acc, log_p_acc, norm_acc, exp_acc, diff_acc]
+
     if param_dict['model'] == 'gm_out':
         mean_x, cov_x, _ = params_out
     else:
         mean_x, cov_x = params_out
 
-    debug_tensors = [mean_0, cov_0, mean_z, cov_z, mean_x, cov_x]
+    dist_params = [mean_0, cov_0, mean_z, cov_z, mean_x, cov_x]
+    tracked_tensors = [sub_losses_acc, dist_params]
     count += 1
-    return x_pl, f_theta, err_acc, count, f_state, eps_z, debug_tensors
+    return x_pl, f_theta, err_acc, count, f_state, eps_z, tracked_tensors
 
 
 def get_train_loop_fun(param_dict, fun_dict):

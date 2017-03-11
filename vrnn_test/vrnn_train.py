@@ -32,7 +32,15 @@ def get_train_batch_dict_generator(data, x_pl, hid_pl, eps_z, pd):
         yield d
 
 
-def get_debug_pl(pd):
+def get_tracking_placeholders(pd):
+    sub_losses = [tf.constant(0, dtype=tf.float32, name='kldiv_acc'),
+                  tf.constant(0, dtype=tf.float32, name='log_p_acc'),
+                  tf.constant(0, dtype=tf.float32, name='norm_acc'),
+                  tf.constant(0, dtype=tf.float32, name='exp_acc'),
+                  tf.constant(0, dtype=tf.float32, name='diff_acc')]
+    if 'bin' in pd['model']:
+        sub_losses.append(tf.constant(0, dtype=tf.float32, name='ce_loss_acc'))
+
     mean_0 = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['z_dim']], name='mean_prior_debug')
     cov_0 = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['z_dim']], name='cov_prior_debug')
     mean_z = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['z_dim']], name='mean_z_debug')
@@ -43,7 +51,8 @@ def get_debug_pl(pd):
     else:
         mean_x = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['x_dim']], name='mean_x_debug')
         cov_x = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['x_dim']], name='cov_x_debug')
-    return [mean_0, cov_0, mean_z, cov_z, mean_x, cov_x]
+    dist_params = [mean_0, cov_0, mean_z, cov_z, mean_x, cov_x]
+    return [sub_losses, dist_params]
 
 
 def run_training(pd):
@@ -73,29 +82,19 @@ def run_training(pd):
         eps_z = tf.placeholder(tf.float32, name='eps_z',
                                shape=(pd['seq_length'], pd['batch_size'], pd['z_dim']))
         hid_pl = tf.placeholder(tf.float32, shape=(pd['batch_size'], pd['hid_state_size']), name='ht_init')
-        err_acc = [tf.constant(0, dtype=tf.float32, name='bound_acc'),
-                   tf.constant(0, dtype=tf.float32, name='kldiv_acc'),
-                   tf.constant(0, dtype=tf.float32, name='log_p_acc'),
-                   tf.constant(0, dtype=tf.float32, name='norm_acc'),
-                   tf.constant(0, dtype=tf.float32, name='exp_acc'),
-                   tf.constant(0, dtype=tf.float32, name='diff_acc')]
+        err_acc = tf.constant(0, dtype=tf.float32, name='diff_acc')
         count = tf.constant(0, dtype=tf.float32, name='counter')
         f_state = netgen.fd['f_theta'].zero_state(pd['batch_size'], tf.float32)
-        debug_tensors = get_debug_pl(pd)
-        loop_vars = [x_pl, hid_pl, err_acc, count, f_state, eps_z, debug_tensors]
+        tracked_tensors = get_tracking_placeholders(pd)
+        loop_vars = [x_pl, hid_pl, err_acc, count, f_state, eps_z, tracked_tensors]
 
         loop_res = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
 
         with tf.variable_scope(tf.get_variable_scope(), reuse=True):
             loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars)
 
-        err_final = loop_res[2]
-        bound_final = err_final[0]
-        kldiv_final = err_final[1]
-        log_p_final = err_final[2]
-        norm_final = err_final[3]
-        exp_final = err_final[4]
-        diff_final = err_final[5]
+        bound_final = loop_res[2]
+        sub_losses, dist_params = loop_res[-1]
 
         # train_op, grad_print = model.train(bound_final, pd['learning_rate'])
         train_op = model.optimization(bound_final, pd['learning_rate'])
@@ -103,8 +102,8 @@ def run_training(pd):
         batch_dict = get_train_batch_dict_generator(data, x_pl, hid_pl, eps_z, pd)
 
         # SUMMARIES
-        tv = tf.trainable_variables()
-        tv_summary = [tf.reduce_mean(k) for k in tv]
+        # tv = tf.trainable_variables()
+        # tv_summary = [tf.reduce_mean(k) for k in tv]
         # tv_print = tf.Print(bound_final, tv_summary, message='tv ')
 
         # for v in tv:
@@ -122,16 +121,13 @@ def run_training(pd):
         #     tf.summary.histogram('grads/cut10/' + name, g)
 
         tf.summary.scalar('bound', bound_final)
-        tf.summary.scalar('kldiv', kldiv_final)
-        tf.summary.scalar('log_p', log_p_final)
-        tf.summary.scalar('norm', norm_final)
-        tf.summary.scalar('exp', exp_final)
-        tf.summary.scalar('diff', diff_final)
+        loss_names = ['kldiv', 'log_p', 'norm', 'exp', 'x_diff', 'bin_ce']
+        for idx in range(len(sub_losses)):
+            tf.summary.scalar(loss_names[idx], sub_losses[idx])
 
-        names = ['mean_0', 'cov_0', 'mean_z', 'cov_z', 'mean_x', 'cov_x']
+        dist_names = ['mean_0', 'cov_0', 'mean_z', 'cov_z', 'mean_x', 'cov_x']
         cuts = [40, 5, 40, 5, 10, 5]
-        debug = loop_res[-1]
-        for t, name, cut in zip(debug, names, cuts):
+        for t, name, cut in zip(dist_params, dist_names, cuts):
             tf.summary.histogram('debug/raw/' + name, t)
             t = tf.maximum(t, -cut)
             t = tf.minimum(t, cut)
@@ -158,7 +154,9 @@ def run_training(pd):
                 _, err, summary_str = sess.run([train_op, bound_final, summary_op], feed_dict=feed)
 
                 summary_writer.add_summary(summary_str, it)
-                summary_writer.flush()
+
+                if (pd['print_freq'] > 0) and (it + 1) % 50 == 0:
+                    summary_writer.flush()
 
                 if (pd['print_freq'] > 0) and (it + 1) % pd['print_freq'] == 0:
 
@@ -222,8 +220,8 @@ def run_generation(params_file, ckpt_file=None, batch=None):
         eps_x = tf.placeholder(tf.float32, shape=(pd['seq_length'], pd['batch_size'], pd['x_dim']),
                                name='eps_x')
         if pd['model'] == 'gm_out':
-            eps_z = tf.placeholder(tf.float32, shape=(pd['modes_out']))
-            eps_out = [eps_x, eps_z]
+            eps_pi = tf.placeholder(tf.int32, shape=(pd['seq_length'], pd['batch_size']))
+            eps_out = [eps_x, eps_pi]
         else:
             eps_out = eps_x
         hid_pl = tf.placeholder(tf.float32, shape=(pd['batch_size'], pd['hid_state_size']), name='ht_init')
