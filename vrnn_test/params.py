@@ -3,14 +3,14 @@ PARAM_DICT = dict()
 # data path
 PARAM_DICT['series'] = -1
 PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_200_pad_0_max_300_norm_xyonly.npy'
-PARAM_DICT['log_path'] = 'data/logs/handwriting_46'
+PARAM_DICT['log_path'] = 'data/logs/handwriting_47'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 200
-PARAM_DICT['load_path'] = 'data/logs/handwriting_45/ckpt-7000'
+PARAM_DICT['load_path'] = None  # 'data/logs/handwriting_45/'
 
 # other architectures put on halt
-PARAM_DICT['model'] = 'gauss_out'  # options: gauss_out, gm_out
-PARAM_DICT['modes_out'] = 1
+PARAM_DICT['model'] = 'gm_out'  # options: gauss_out, gm_out, soon: gauss_out_bin, gm_out_bin
+PARAM_DICT['modes_out'] = 5
 
 # specify global settings
 PARAM_DICT['batch_size'] = 100
@@ -35,6 +35,8 @@ if PARAM_DICT['model'] == 'gauss_out':
 else:
     out_dist = 'gm'
 
+if 'bin' in PARAM_DICT['model']:
+    out_dist += '_plus_bin'
 # assign shared variables
 phi_x_out = 50  # 200
 phi_z_out = 50  # 200

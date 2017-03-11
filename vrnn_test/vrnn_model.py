@@ -3,6 +3,10 @@ import numpy as np
 
 
 def sample(params, noise, dist='gauss'):
+    if 'bin' in dist:
+        logits = params[-1]
+        params = params[:-1]
+
     if 'gauss' in dist:
         mean, cov = params
         s = mean + tf.sqrt(cov) * noise
@@ -12,6 +16,10 @@ def sample(params, noise, dist='gauss'):
         s = means[eps_pi] + tf.sqrt(covs[eps_pi]) * eps_x
     else:
         raise NotImplementedError
+
+    if 'bin' in dist:
+        sig = tf.sigmoid(logits)
+        s = tf.concat([s, sig], axis=2)
     return s
 
 
@@ -77,14 +85,12 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
     elif param_dict['model'] == 'gm_out':
         log_p, log_x_norm, log_x_exp, abs_diff = gm_log_p(params_out, x_target, param_dict['x_dim'])
     elif param_dict['model'] == 'gauss_out_plus_bin':
-        # slice off
         dist_target = tf.slice(x_target, [0, 0], [-1, -2])
         bin_target = tf.slice(x_target, [0, -1], [-1, 1])
         log_p, log_x_norm, log_x_exp, abs_diff = gaussian_log_p(params_out[:-1], dist_target, param_dict['x_dim'])
         char_ce = ce_loss(params_out[-1], bin_target)
         log_p -= char_ce
     elif param_dict['model'] == 'gm_out_plus_bin':
-        # slice off
         dist_target = tf.slice(x_target, [0, 0], [-1, -2])
         bin_target = tf.slice(x_target, [0, -1], [-1, 1])
         log_p, log_x_norm, log_x_exp, abs_diff = gm_log_p(params_out[:-1], dist_target, param_dict['x_dim'])
