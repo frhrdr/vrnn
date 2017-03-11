@@ -5,7 +5,7 @@ from params import PARAM_DICT
 from iamondb_reader import mat_to_plot
 import numpy as np
 
-mode = 2
+mode = 1
 
 if mode == 1:  # run training
     run_training(PARAM_DICT)
