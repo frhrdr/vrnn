@@ -114,4 +114,8 @@ assumed potential causes:
 
 - test 48 setup zdim = 10
 
-- test 49 binary gauss with zdim = 10, next run try zdim = 2
+- test 49 binary gauss with zdim = 10 - decent results, but 
+
+, next run try zdim = 2
+
+- 

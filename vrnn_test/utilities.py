@@ -142,7 +142,7 @@ def out_to_normal_plus_binary(net_fun, params):
                                                                                       mean=0,
                                                                                       stddev=params['init_sig_var']))
             cov_biases = tf.get_variable(name + '_c_b', initializer=tf.random_normal([d_dist], mean=0))
-            cov = tf.nn.softplus(tf.matmul(net_out, cov_weights)) + cov_biases
+            cov = tf.nn.softplus(tf.matmul(net_out, cov_weights) + cov_biases)
 
             bin_weights = tf.get_variable(name + '_bin_w', initializer=tf.random_normal([d_out, 1], mean=0, stddev=0.01))
             bin_biases = tf.get_variable(name + '_bin_b', initializer=tf.random_normal([1], mean=0))
@@ -188,12 +188,14 @@ def out_to_gm_plus_binary(net_fun, params):
         with tf.name_scope(name):
             net_out = net_fun(in_pl)
 
-            pi_weights = tf.get_variable(name + '_pi', initializer=tf.random_normal([d_out, num_modes], mean=0))
-            pi_logit = tf.matmul(net_out, pi_weights)
+            pi_weights = tf.get_variable(name + '_pi_w', initializer=tf.random_normal([d_out, num_modes], mean=0))
+            pi_biases = tf.get_variable(name + '_pi_b', initializer=tf.random_normal([num_modes], mean=0))
+            pi_logit = tf.matmul(net_out, pi_weights) + pi_biases
 
-            mean_weights = tf.get_variable(name + '_m',
+            mean_weights = tf.get_variable(name + '_m_w',
                                            initializer=tf.random_normal([d_out, num_modes * d_dist], mean=0))
-            mean = tf.reshape(tf.matmul(net_out, mean_weights), [-1, num_modes, d_dist])
+            mean_biases = tf.get_variable(name + '_m_b', initializer=tf.random_normal([num_modes * d_dist], mean=0))
+            mean = tf.reshape(tf.matmul(net_out, mean_weights) + mean_biases, [-1, num_modes, d_dist])
 
             cov_weights = tf.get_variable(name + '_c',
                                           initializer=tf.random_normal([d_out, num_modes * d_dist],
