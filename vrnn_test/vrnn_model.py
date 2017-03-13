@@ -11,18 +11,19 @@ def sample(params, noise, dist='gauss'):
         mean, cov = params
         s = mean + tf.sqrt(cov) * noise
     elif 'gm' in dist:
-        means, covs, pis = params
-        choices = tf.multinomial(pis, num_samples=1)
-        ids = tf.constant(range(choices.get_shape()[0]), dtype=tf.int64, shape=(choices.get_shape()[0], 1))
+        means, covs, pi_logits = params
+        choices = tf.multinomial(pi_logits, num_samples=1)
+        batch_size = choices.get_shape()[0]
+        modes = pi_logits.get_shape()[1]
+        ids = tf.constant(range(batch_size), dtype=tf.int64, shape=(batch_size, 1))
         idx_tensor = tf.concat([ids, choices], axis=1)
         chosen_means = tf.gather_nd(means, idx_tensor)
         chosen_covs = tf.gather_nd(covs, idx_tensor)
         eps_x, eps_pi = noise
         s = chosen_means + tf.sqrt(chosen_covs) * eps_x
 
-        # c0 = tf.re
-        hist = tf.histogram_fixed_width(tf.to_float(choices), value_range=[0.0, 5.0], nbins=10)
-        s = tf.Print(s, [tf.reduce_mean(pis, axis=[0]), hist], message='gm_x_samples_pi_samples', summarize=10)
+        hist = tf.histogram_fixed_width(tf.to_float(choices), value_range=[0.0, float(modes)], nbins=modes)
+        s = tf.Print(s, [tf.reduce_mean(pi_logits, axis=[0]), hist], message='pi logits & picks: ', summarize=modes)
     else:
         raise NotImplementedError
 
@@ -96,18 +97,18 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
         log_p, log_x_norm, log_x_exp, abs_diff = gaussian_log_p(params_out, x_target, param_dict['x_dim'])
     elif param_dict['model'] == 'gm_out':
         log_p, log_x_norm, log_x_exp, abs_diff = gm_log_p(params_out, x_target, param_dict['x_dim'])
-    elif param_dict['model'] == 'gauss_out_plus_bin':
-        dist_target = tf.slice(x_target, [0, 0], [-1, -2])
+    elif param_dict['model'] == 'gauss_out_bin':
+        dist_target = tf.slice(x_target, [0, 0], [-1, param_dict['x_dim']])
         bin_target = tf.slice(x_target, [0, -1], [-1, 1])
         log_p, log_x_norm, log_x_exp, abs_diff = gaussian_log_p(params_out[:-1], dist_target, param_dict['x_dim'])
         char_ce = ce_loss(params_out[-1], bin_target)
-        maybe_ce = tf.reduce_mean(char_ce)
-    elif param_dict['model'] == 'gm_out_plus_bin':
+        maybe_ce = [tf.reduce_mean(char_ce)]
+    elif param_dict['model'] == 'gm_out_bin':
         dist_target = tf.slice(x_target, [0, 0], [-1, -2])
         bin_target = tf.slice(x_target, [0, -1], [-1, 1])
         log_p, log_x_norm, log_x_exp, abs_diff = gm_log_p(params_out[:-1], dist_target, param_dict['x_dim'])
         char_ce = ce_loss(params_out[-1], bin_target)
-        maybe_ce = tf.reduce_mean(char_ce)
+        maybe_ce = [tf.reduce_mean(char_ce)]
     else:
         raise NotImplementedError
 
@@ -124,7 +125,7 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
         bound = kl_div - log_p
 
     if 'bin' in param_dict['model']:
-        bound = bound + maybe_ce[0]
+        bound += maybe_ce[0]
 
     norm = tf.reduce_mean(log_x_norm)
     exp = tf.reduce_mean(log_x_exp)
@@ -137,9 +138,8 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
 def optimization(err_acc, learning_rate):
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     tvars = tf.trainable_variables()
-    # grads = tf.gradients(err_acc, tvars)
-    tg_pairs = [(tf.clip_by_value(k[0], -100, 100), k[1]) for k in zip(tf.gradients(err_acc, tvars), tvars) if k[0] is not None]
-    # grads = [tf.clip_by_value(k, -100, 100) for k in tf.gradients(err_acc, tvars) if k is not None]
+    grads = tf.gradients(err_acc, tvars)
+    tg_pairs = [(tf.clip_by_value(k[0], -100, 100), k[1]) for k in zip(grads, tvars) if k[0] is not None]
     train_op = optimizer.apply_gradients(tg_pairs)
     return train_op
 
@@ -152,24 +152,13 @@ def train_loop(x_pl, f_theta, bound_acc, count, f_state, eps_z, param_dict, fun_
     bound_step, sub_losses_step = loss(x_t, mean_0, cov_0, mean_z, cov_z,
                                        params_out, param_dict)
 
-    sub_losses_acc, dist_params = tracked_tensors
-    # kldiv_step, log_p_step, norm_step, exp_step, diff_step = sub_losses_step
-
     bound_acc += bound_step
+    sub_losses_acc = tracked_tensors[0]
     sub_losses_acc = [a + s for (a, s) in zip(sub_losses_acc, sub_losses_step)]
-    # kldiv_acc = err_acc[1] + kldiv_step
-    # log_p_acc = err_acc[2] + log_p_step
-    # norm_acc = err_acc[3] + norm_step
-    # exp_acc = err_acc[4] + exp_step
-    # diff_acc = err_acc[5] + diff_step
-    # err_acc = [bound_acc, kldiv_acc, log_p_acc, norm_acc, exp_acc, diff_acc]
 
-    if param_dict['model'] == 'gm_out':
-        mean_x, cov_x, _ = params_out
-    else:
-        mean_x, cov_x = params_out
-
+    mean_x, cov_x = params_out[:2]
     dist_params = [mean_0, cov_0, mean_z, cov_z, mean_x, cov_x]
+
     tracked_tensors = [sub_losses_acc, dist_params]
     count += 1
     return x_pl, f_theta, bound_acc, count, f_state, eps_z, tracked_tensors

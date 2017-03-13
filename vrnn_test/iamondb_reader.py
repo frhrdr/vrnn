@@ -175,9 +175,10 @@ def no_values_check(val):
 # np.save('data/handwriting/rough_cut_200_pad_0_max_300_norm.npy', mat)
 # print(m)
 # print(s)
-# a = np.load('data/handwriting/rough_cut_200_pad_0_max_300_norm_xyonly.npy')
-# i = 1000
-# m =[7.61830955,  0.54058467,  0.03867651]  # [0., 0.]  #
+
+# a = np.load('data/handwriting/rough_cut_200_pad_0_max_300_norm.npy')
+# i = 1
+# m = [7.61830955,  0.54058467,  0.03867651]  # [0., 0.]  #
 # s = [33.74283029,  36.72359088,   0.19282281]  # [1., 1.]  #
 # mat_to_plot(a[:, i, :], m[0], m[1], s[0], s[1])
 

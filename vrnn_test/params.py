@@ -2,14 +2,14 @@ PARAM_DICT = dict()
 
 # data path
 PARAM_DICT['series'] = -1
-PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_200_pad_0_max_300_norm_xyonly.npy'
-PARAM_DICT['log_path'] = 'data/logs/handwriting_47/'
+PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_200_pad_0_max_300_norm.npy'
+PARAM_DICT['log_path'] = 'data/logs/handwriting_49/'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 200
 PARAM_DICT['load_path'] = None  # 'data/logs/handwriting_47/'
 
 # other architectures put on halt
-PARAM_DICT['model'] = 'gm_out'  # options: gauss_out, gm_out, soon: gauss_out_bin, gm_out_bin
+PARAM_DICT['model'] = 'gauss_out_bin'  # options: gauss_out, gm_out, soon: gauss_out_bin, gm_out_bin
 PARAM_DICT['modes_out'] = 5
 
 # specify global settings
@@ -29,8 +29,8 @@ n_out = PARAM_DICT['x_dim']          # x
 n_z = PARAM_DICT['z_dim']            # z
 n_ht = PARAM_DICT['hid_state_size']     # h_t
 
-if PARAM_DICT['model'] == 'gauss_out':
-    out_dist = 'normal'
+if 'gauss' in PARAM_DICT['model']:
+    out_dist = 'gauss'
     PARAM_DICT['modes_out'] = 1
 else:
     out_dist = 'gm'
@@ -54,7 +54,7 @@ PARAM_DICT['phi_prior'] = {'name': 'phi_prior',
                            'nn_type': 'general_mlp',
                            'activation': 'relu',
                            'layers': [n_ht, phi_prior_out],
-                           'out2dist': 'normal',
+                           'out2dist': 'gauss',
                            'init_sig_var': 0.01,
                            'init_sig_bias': 0.0,
                            'dist_dim': n_z
@@ -64,7 +64,7 @@ PARAM_DICT['phi_enc'] = {'name': 'phi_enc',
                          'nn_type': 'general_mlp',
                          'activation': 'relu',
                          'layers': [phi_x_out + n_ht, phi_enc_out],
-                         'out2dist': 'normal',
+                         'out2dist': 'gauss',
                          'init_sig_var': 0.01,
                          'init_sig_bias': 0.0,
                          'dist_dim': n_z

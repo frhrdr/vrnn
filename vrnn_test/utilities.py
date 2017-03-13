@@ -42,13 +42,13 @@ class NetGen:
             self.fd[name] = general_lstm(params, name)
 
         if 'out2dist' in params:
-            if params['out2dist'] == 'normal':
+            if params['out2dist'] == 'gauss':
                 self.fd[name] = out_to_normal(self.fd[name], params)
-            elif params['out2dist'] == 'normal_plus_binary':
+            elif params['out2dist'] == 'gauss_plus_bin':
                 self.fd[name] = out_to_normal_plus_binary(self.fd[name], params)
             elif params['out2dist'] == 'gm':
                 self.fd[name] = out_to_gm(self.fd[name], params)
-            elif params['out2dist'] == 'gm_plus_binary':
+            elif params['out2dist'] == 'gm_plus_bin':
                 raise NotImplementedError
 
     # concatenates several tensors into one input to existing nn of given name
