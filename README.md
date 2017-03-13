@@ -92,12 +92,14 @@
 
 - test 44 run original model with small weight setups. especially small latent dim. - aaaaaand IT'S ALIIIVE! first samples resembling handwriting! 10k iterations
 assumed potential causes:
- -- way lower learning rate (no overshoots)
- -- small model (generally faster convergence and way more iterations possible)
- -- reduced latent space (something something autoencoders? also reduced variance)
+ + way lower learning rate (no overshoots)
+ + small model (generally faster convergence and way more iterations possible)
+ + reduced latent space (something something autoencoders? also reduced variance)
+ 
+
 weak-spots:
- -- kl-div not converged (really slow towards the end)
- -- limited variability due to small latent space
+ + kl-div not converged (really slow towards the end)
+ + limited variability due to small latent space
 
 - test 45 next run with slightly larger architecture and higher lr - 
 
