@@ -114,14 +114,16 @@ def out_to_normal(net_fun, params):
     def f(in_pl):
         with tf.name_scope(name):
             net_out = net_fun(in_pl)
-            mean_weights = tf.get_variable(name + '_m', initializer=tf.random_normal([d_out, d_dist], mean=0))
-            mean = tf.matmul(net_out, mean_weights)
-            cov_weights = tf.get_variable(name + '_c', initializer=tf.random_normal([d_out, d_dist],
-                                                                                    mean=params['init_sig_bias'],
-                                                                                    stddev=params['init_sig_var']))
-            cov = tf.nn.softplus(tf.matmul(net_out, cov_weights), name=name + '_softplus')
-            # cov = cov + tf.constant(1.0, dtype=tf.float32, name='min_variance')
-            # cov = tf.constant(0.05, dtype=tf.float32, shape=[net_out.get_shape()[0], d_dist], name='fixed_variance')
+            mean_weights = tf.get_variable(name + '_m_w', initializer=tf.random_normal([d_out, d_dist], mean=0))
+            mean_biases = tf.get_variable(name + '_m_b', initializer=tf.random_normal([d_dist], mean=0))
+
+            mean = tf.matmul(net_out, mean_weights) + mean_biases
+            cov_weights = tf.get_variable(name + '_c_w', initializer=tf.random_normal([d_out, d_dist],
+                                                                                      mean=0,
+                                                                                      stddev=params['init_sig_var']))
+            cov_biases = tf.get_variable(name + '_c_b', initializer=tf.random_normal([d_dist], mean=0))
+            cov = tf.nn.softplus(tf.matmul(net_out, cov_weights) + cov_biases)
+
         return mean, cov
     return f
 
@@ -197,14 +199,16 @@ def out_to_gm_plus_binary(net_fun, params):
             mean_biases = tf.get_variable(name + '_m_b', initializer=tf.random_normal([num_modes * d_dist], mean=0))
             mean = tf.reshape(tf.matmul(net_out, mean_weights) + mean_biases, [-1, num_modes, d_dist])
 
-            cov_weights = tf.get_variable(name + '_c',
+            cov_weights = tf.get_variable(name + '_c_w',
                                           initializer=tf.random_normal([d_out, num_modes * d_dist],
                                                                        mean=params['init_sig_bias'],
                                                                        stddev=params['init_sig_var']))
-            cov = tf.reshape(tf.nn.softplus(tf.matmul(net_out, cov_weights)), [-1, num_modes, d_dist])
+            cov_biases = tf.get_variable(name + '_c_b', initializer=tf.random_normal([num_modes * d_dist], mean=0))
+            cov = tf.reshape(tf.nn.softplus(tf.matmul(net_out, cov_weights) + cov_biases), [-1, num_modes, d_dist])
 
-            bin_weights = tf.get_variable(name + '_bin', initializer=tf.random_normal([d_out, 1], mean=0, stddev=0.01))
-            bin_logit = tf.matmul(net_out, bin_weights)
+            bin_weights = tf.get_variable(name + '_bin_w', initializer=tf.random_normal([d_out, 1], mean=0, stddev=0.01))
+            bin_biases = tf.get_variable(name + '_bin_b', initializer=tf.random_normal([d_out, 1], mean=0, stddev=0.01))
+            bin_logit = tf.matmul(net_out, bin_weights) + bin_biases
         return mean, cov, pi_logit, bin_logit
     return f
 

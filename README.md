@@ -4,8 +4,6 @@
 - ssh -L 16006:127.0.0.1:6006 amlab
 - scp rough_cut_200_pad_0_max_300_norm_xyonly.npy fharder@146.50.28.47:~/generative_audio_vrnn/vrnn_test/data/handwriting/
 - scp fharder@146.50.28.47:~/generative_audio_vrnn/vrnn_test/data/logs/handwriting_/checkpoint .
-- contrib training bucket by seq len
-- tensorarray
 
 ###done:
 
@@ -23,6 +21,7 @@
 
 ###notes:
 - reconsider gradient clipping and masking
+- contrib training bucket by seq len & tensorarray
 
 ###test log:
 - test 08: +-1 clipping led to steady run over 5000 iterations... no idea why.
@@ -114,8 +113,8 @@ assumed potential causes:
 
 - test 48 setup zdim = 10
 
-- test 49 binary gauss with zdim = 10 - decent results, but 
+- test 49 binary gauss with zdim = 10 - decent results, but binary output doesn't seem to work all that well
 
-, next run try zdim = 2
+- test 50 as 49 but with zdim = 2 and biases for dist params
 
 - 
