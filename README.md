@@ -1,4 +1,10 @@
 # vrnn
+
+### cut'n'paste:
+- ssh -L 16006:127.0.0.1:6006 amlab
+- scp rough_cut_200_pad_0_max_300_norm_xyonly.npy fharder@146.50.28.47:~/generative_audio_vrnn/vrnn_test/data/handwriting/
+- scp fharder@146.50.28.47:~/generative_audio_vrnn/vrnn_test/data/logs/handwriting_/checkpoint .
+
 ###done:
 
 - build VAE, run on mnist
@@ -95,11 +101,8 @@ assumed potential causes:
  + way lower learning rate (no overshoots)
  + small model (generally faster convergence and way more iterations possible)
  + reduced latent space (something something autoencoders? also reduced variance)
- 
-
-weak-spots:
- + kl-div not converged (really slow towards the end)
- + limited variability due to small latent space
+ + con: kl-div not converged (really slow towards the end)
+ + con: limited variability due to small latent space
 
 - test 45 next run with slightly larger architecture and higher lr - 
 
