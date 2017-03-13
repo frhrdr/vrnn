@@ -1,9 +1,6 @@
 import tensorflow as tf
-import math
 import matplotlib.pyplot as plt
 import numpy as np
-from collections import defaultdict
-from tensorflow.contrib.slim import batch_norm
 
 ACT_FUNCS = {'relu': tf.nn.relu,
              'tanh': tf.nn.tanh,

@@ -12,18 +12,18 @@ from utilities import NetGen
 # load param_dict for the overall model
 
 
-def get_train_batch_dict_generator(data, x_pl, hid_pl, eps_z, pd):
+def get_train_batch_dict_generator(data, in_pl, hid_pl, eps_z, pd):
     end_idx = 0
     d = {}
     while True:
         start_idx = end_idx
         end_idx += pd['batch_size']
         if end_idx < data.shape[1]:
-            d[x_pl] = data[:, start_idx:end_idx, :]  # input
+            d[in_pl] = data[:, start_idx:end_idx, :]  # input
         else:
             d1 = data[:, start_idx:, :]
             d2 = data[:, :(end_idx % data.shape[1]), :]
-            d[x_pl] = np.concatenate((d1, d2), axis=1)
+            d[in_pl] = np.concatenate((d1, d2), axis=1)
             end_idx = end_idx % data.shape[1]
 
         d[hid_pl] = np.zeros((pd['batch_size'], pd['hid_state_size']))
@@ -46,8 +46,10 @@ def get_tracking_placeholders(pd):
     mean_z = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['z_dim']], name='mean_z_debug')
     cov_z = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['z_dim']], name='cov_z_debug')
     if pd['model'] == 'gm_out':
-        mean_x = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['modes_out'], pd['x_dim']], name='mean_x_debug')
-        cov_x = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['modes_out'], pd['x_dim']], name='cov_x_debug')
+        mean_x = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['modes_out'], pd['x_dim']],
+                             name='mean_x_debug')
+        cov_x = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['modes_out'], pd['x_dim']],
+                            name='cov_x_debug')
     else:
         mean_x = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['x_dim']], name='mean_x_debug')
         cov_x = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['x_dim']], name='cov_x_debug')
@@ -73,12 +75,12 @@ def run_training(pd):
     for net in multi_input_nets:
         netgen.weave_inputs(net)
 
-    with tf.Graph().as_default() as graph:
+    with tf.Graph().as_default():
         stop_fun = model.get_train_stop_fun(pd['seq_length'])
         loop_fun = model.get_train_loop_fun(pd, netgen.fd)
 
-        x_pl = tf.placeholder(tf.float32, name='x_pl',
-                              shape=(pd['seq_length'], pd['batch_size'], pd['x_dim']))
+        in_pl = tf.placeholder(tf.float32, name='x_pl',
+                               shape=(pd['seq_length'], pd['batch_size'], pd['in_dim']))
         eps_z = tf.placeholder(tf.float32, name='eps_z',
                                shape=(pd['seq_length'], pd['batch_size'], pd['z_dim']))
         hid_pl = tf.placeholder(tf.float32, shape=(pd['batch_size'], pd['hid_state_size']), name='ht_init')
@@ -86,9 +88,9 @@ def run_training(pd):
         count = tf.constant(0, dtype=tf.float32, name='counter')
         f_state = netgen.fd['f_theta'].zero_state(pd['batch_size'], tf.float32)
         tracked_tensors = get_tracking_placeholders(pd)
-        loop_vars = [x_pl, hid_pl, err_acc, count, f_state, eps_z, tracked_tensors]
+        loop_vars = [in_pl, hid_pl, err_acc, count, f_state, eps_z, tracked_tensors]
 
-        loop_res = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
+        _ = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
 
         with tf.variable_scope(tf.get_variable_scope(), reuse=True):
             loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars)
@@ -96,10 +98,9 @@ def run_training(pd):
         bound_final = loop_res[2]
         sub_losses, dist_params = loop_res[-1]
 
-        # train_op, grad_print = model.train(bound_final, pd['learning_rate'])
         train_op = model.optimization(bound_final, pd['learning_rate'])
 
-        batch_dict = get_train_batch_dict_generator(data, x_pl, hid_pl, eps_z, pd)
+        batch_dict = get_train_batch_dict_generator(data, in_pl, hid_pl, eps_z, pd)
 
         # SUMMARIES
         # tv = tf.trainable_variables()
@@ -214,7 +215,7 @@ def run_generation(params_file, ckpt_file=None, batch=None):
         stop_fun = model.get_gen_stop_fun(pd['seq_length'])
         loop_fun = model.get_gen_loop_fun(pd, netgen.fd)
 
-        x_pl = tf.zeros([pd['seq_length'], pd['batch_size'], pd['x_dim']], dtype=tf.float32)
+        in_pl = tf.zeros([pd['seq_length'], pd['batch_size'], pd['in_dim']], dtype=tf.float32)
         eps_z = tf.placeholder(tf.float32, shape=(pd['seq_length'], pd['batch_size'], pd['z_dim']),
                                name='eps_z')
         eps_x = tf.placeholder(tf.float32, shape=(pd['seq_length'], pd['batch_size'], pd['x_dim']),
@@ -227,7 +228,7 @@ def run_generation(params_file, ckpt_file=None, batch=None):
         hid_pl = tf.placeholder(tf.float32, shape=(pd['batch_size'], pd['hid_state_size']), name='ht_init')
         count = tf.constant(0, dtype=tf.float32, name='counter')
         f_state = netgen.fd['f_theta'].zero_state(pd['batch_size'], tf.float32)
-        loop_vars = [x_pl, hid_pl, count, f_state, eps_z, eps_out]
+        loop_vars = [in_pl, hid_pl, count, f_state, eps_z, eps_out]
 
         _ = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
 

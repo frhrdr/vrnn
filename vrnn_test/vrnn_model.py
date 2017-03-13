@@ -33,7 +33,7 @@ def sample(params, noise, dist='gauss'):
     return s
 
 
-def inference(in_pl, hid_pl, f_state, eps_z, param_dict, fd):
+def inference(in_pl, hid_pl, f_state, eps_z, fd):
     phi_x = fd['phi_x'](in_pl)
     mean_0, cov_0 = fd['phi_prior'](hid_pl)
     mean_z, cov_z = fd['phi_enc'](phi_x, hid_pl)
@@ -99,13 +99,13 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
         log_p, log_x_norm, log_x_exp, abs_diff = gm_log_p(params_out, x_target, param_dict['x_dim'])
     elif param_dict['model'] == 'gauss_out_bin':
         dist_target = tf.slice(x_target, [0, 0], [-1, param_dict['x_dim']])
-        bin_target = tf.slice(x_target, [0, -1], [-1, 1])
+        bin_target = tf.slice(x_target, [0, param_dict['x_dim']], [-1, 1])
         log_p, log_x_norm, log_x_exp, abs_diff = gaussian_log_p(params_out[:-1], dist_target, param_dict['x_dim'])
         char_ce = ce_loss(params_out[-1], bin_target)
         maybe_ce = [tf.reduce_mean(char_ce)]
     elif param_dict['model'] == 'gm_out_bin':
-        dist_target = tf.slice(x_target, [0, 0], [-1, -2])
-        bin_target = tf.slice(x_target, [0, -1], [-1, 1])
+        dist_target = tf.slice(x_target, [0, 0], [-1, param_dict['x_dim']])
+        bin_target = tf.slice(x_target, [0, param_dict['x_dim']], [-1, 1])
         log_p, log_x_norm, log_x_exp, abs_diff = gm_log_p(params_out[:-1], dist_target, param_dict['x_dim'])
         char_ce = ce_loss(params_out[-1], bin_target)
         maybe_ce = [tf.reduce_mean(char_ce)]
@@ -147,10 +147,9 @@ def optimization(err_acc, learning_rate):
 def train_loop(x_pl, f_theta, bound_acc, count, f_state, eps_z, param_dict, fun_dict, tracked_tensors):
     x_t = tf.squeeze(tf.slice(x_pl, [tf.to_int32(count), 0, 0], [1, -1, -1]))
     eps_z_t = tf.squeeze(tf.slice(eps_z, [tf.to_int32(count), 0, 0], [1, -1, -1]))
-    mean_0, cov_0, mean_z, cov_z, params_out, f_theta, f_state = inference(x_t, f_theta, f_state, eps_z_t,
-                                                                           param_dict, fun_dict)
-    bound_step, sub_losses_step = loss(x_t, mean_0, cov_0, mean_z, cov_z,
-                                       params_out, param_dict)
+
+    mean_0, cov_0, mean_z, cov_z, params_out, f_theta, f_state = inference(x_t, f_theta, f_state, eps_z_t, fun_dict)
+    bound_step, sub_losses_step = loss(x_t, mean_0, cov_0, mean_z, cov_z, params_out, param_dict)
 
     bound_acc += bound_step
     sub_losses_acc = tracked_tensors[0]
@@ -256,5 +255,3 @@ def get_gen_stop_fun(num_iter):
 # def naive_rec_err(mean_x, cov_x, x_target, k):  # for debugging purposes
 #     x_diff = x_target - mean_x
 #     return -tf.reduce_sum(x_diff * x_diff, axis=[1])
-
-
