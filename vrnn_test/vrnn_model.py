@@ -2,14 +2,14 @@ import tensorflow as tf
 import numpy as np
 
 
-def sample(params, noise, dist='gauss'):
+def sample(params, eps, dist='gauss'):
     if 'bin' in dist:
         logits = params[-1]
         params = params[:-1]
 
     if 'gauss' in dist:
         mean, cov = params
-        s = mean + tf.sqrt(cov) * noise
+        s = mean + tf.sqrt(cov) * eps
     elif 'gm' in dist:
         means, covs, pi_logits = params
         choices = tf.multinomial(pi_logits, num_samples=1)
@@ -19,8 +19,7 @@ def sample(params, noise, dist='gauss'):
         idx_tensor = tf.concat([ids, choices], axis=1)
         chosen_means = tf.gather_nd(means, idx_tensor)
         chosen_covs = tf.gather_nd(covs, idx_tensor)
-        eps_x, eps_pi = noise
-        s = chosen_means + tf.sqrt(chosen_covs) * eps_x
+        s = chosen_means + tf.sqrt(chosen_covs) * eps
 
         hist = tf.histogram_fixed_width(tf.to_float(choices), value_range=[0.0, float(modes)], nbins=modes)
         s = tf.Print(s, [tf.reduce_mean(pi_logits, axis=[0]), hist], message='pi logits & picks: ', summarize=modes)
@@ -29,7 +28,7 @@ def sample(params, noise, dist='gauss'):
 
     if 'bin' in dist:
         sig = tf.sigmoid(logits)
-        s = tf.concat([s, sig], axis=2)
+        s = tf.concat([s, sig], axis=1)
     return s
 
 
@@ -177,12 +176,12 @@ def get_train_stop_fun(num_iter):
     return train_stop_fun
 
 
-def generation(hid_pl, f_state, eps_z, eps_out, pd, fd):
+def generation(hid_pl, f_state, eps_z, eps_x, pd, fd):
     params_prior = fd['phi_prior'](hid_pl)
     z = sample(params_prior, eps_z, 'gauss')
     phi_z = fd['phi_z'](z)
     params_out = fd['phi_dec'](phi_z, hid_pl)
-    x = sample(params_out, eps_out, pd['model'])
+    x = sample(params_out, eps_x, pd['model'])
 
     phi_x = fd['phi_x'](x)
     f_in = tf.concat([phi_x, phi_z], axis=1, name='f_theta_joint_inputs')
@@ -190,41 +189,41 @@ def generation(hid_pl, f_state, eps_z, eps_out, pd, fd):
     return x, f_out, f_state
 
 
-def gen_loop(x_pl, hid_pl, count, f_state, eps_z, eps_out, pd, fun_dict):
-    if pd['model'] == 'gauss_out':
-        eps_x = eps_out
-    elif pd['model'] == 'gm_out':
-        eps_x = eps_out[0]
-    else:
-        raise NotImplementedError
+def gen_loop(x_pl, hid_pl, count, f_state, eps_z, eps_x, pd, fun_dict):
+    # if pd['model'] == 'gauss_out':
+    #     eps_x = eps_out
+    # elif pd['model'] == 'gm_out':
+    #     eps_x = eps_out[0]
+    # else:
+    #     raise NotImplementedError
 
     eps_z_t = tf.squeeze(tf.slice(eps_z, [tf.to_int32(count), 0, 0], [1, -1, -1]))
     eps_x_t = tf.squeeze(tf.slice(eps_x, [tf.to_int32(count), 0, 0], [1, -1, -1]))
 
-    if pd['model'] == 'gauss_out':
-        eps_out_t = eps_x_t
-    elif pd['model'] == 'gm_out':
-        eps_pi = eps_out[1]
-        eps_pi_t = tf.squeeze(tf.slice(eps_pi, [tf.to_int32(count), 0], [1, -1]))
-        eps_out_t = (eps_x_t, eps_pi_t)
-    else:
-        raise NotImplementedError
+    # if pd['model'] == 'gauss_out':
+    #     eps_out_t = eps_x_t
+    # elif pd['model'] == 'gm_out':
+    #     eps_pi = eps_out[1]
+    #     eps_pi_t = tf.squeeze(tf.slice(eps_pi, [tf.to_int32(count), 0], [1, -1]))
+    #     eps_out_t = (eps_x_t, eps_pi_t)
+    # else:
+    #     raise NotImplementedError
 
-    x_t, f_out, f_state = generation(hid_pl, f_state, eps_z_t, eps_out_t, pd, fun_dict)
+    x_t, f_out, f_state = generation(hid_pl, f_state, eps_z_t, eps_x_t, pd, fun_dict)
 
     x_old = tf.slice(x_pl, [0, 0, 0], [tf.to_int32(count), -1, -1])
     x_empty = tf.slice(x_pl, [tf.to_int32(count) + 1, 0, 0], [-1, -1, -1])
-    x_t = tf.reshape(x_t, [1, pd['batch_size'], pd['x_dim']])
+    x_t = tf.reshape(x_t, [1, pd['batch_size'], pd['in_dim']])
     x_pl = tf.concat([x_old, x_t, x_empty], axis=0)
-    x_pl.set_shape([pd['seq_length'], pd['batch_size'], pd['x_dim']])
+    x_pl.set_shape([pd['seq_length'], pd['batch_size'], pd['in_dim']])
 
     count += 1
-    return x_pl, f_out, count, f_state, eps_z, eps_out
+    return x_pl, f_out, count, f_state, eps_z, eps_x
 
 
 def get_gen_loop_fun(param_dict, fun_dict):
-    def f(x_pl, hid_pl, count, f_state, eps_z, eps_out):
-        return gen_loop(x_pl, hid_pl, count, f_state, eps_z, eps_out, param_dict, fun_dict)
+    def f(x_pl, hid_pl, count, f_state, eps_z, eps_x):
+        return gen_loop(x_pl, hid_pl, count, f_state, eps_z, eps_x, param_dict, fun_dict)
     return f
 
 

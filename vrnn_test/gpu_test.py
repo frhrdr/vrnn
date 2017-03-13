@@ -1,5 +1,4 @@
 import numpy as np
+import tensorflow as tf
 
-a = np.load('data/logs/handwriting_15/params.pkl')
-for key in a:
-    print(key, ': ', a[key])
+tf.contrib.training.bucket_by_sequence_length()

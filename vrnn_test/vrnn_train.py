@@ -165,22 +165,18 @@ def run_training(pd):
                           ' error: ' + str(err) +
                           ' time: ' + str(time.time() - start_time))
 
-                    # DEBUG
-                    # sess.run([grad_print, tv_print], feed_dict=feed)
-
                 if (it + 1) % pd['log_freq'] == 0 or (it + 1) == pd['max_iter']:
                     checkpoint_file = os.path.join(pd['log_path'], 'ckpt')
                     saver.save(sess, checkpoint_file, global_step=(it + 1))
 
 
-def get_gen_batch_dict_generator(hid_pl, eps_z, eps_out, pd):
-    if pd['model'] == 'gauss_out':
-        eps_x = eps_out
-        eps_pi = None
-    elif pd['model'] == 'gm_out':
-        eps_x, eps_pi = eps_out
-    else:
-        raise NotImplementedError
+def get_gen_batch_dict_generator(hid_pl, eps_z, eps_x, pd):
+    # if pd['model'] == 'gauss_out':
+    #     eps_x = eps_out
+    # elif pd['model'] == 'gm_out':
+    #     eps_x, eps_pi = eps_out
+    # else:
+    #     raise NotImplementedError
 
     d = {}
     while True:
@@ -189,8 +185,8 @@ def get_gen_batch_dict_generator(hid_pl, eps_z, eps_out, pd):
         d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['z_dim']))
         # d[eps_x] = np.zeros((pd['seq_length'], pd['batch_size'], pd['x_dim']))
         d[eps_x] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['x_dim']))
-        if eps_pi is not None:
-            d[eps_pi] = np.random.randint(1, size=(pd['seq_length'], pd['batch_size']))
+        # if eps_pi is not None:
+        #     d[eps_pi] = np.random.randint(1, size=(pd['seq_length'], pd['batch_size']))
         yield d
 
 
@@ -220,15 +216,15 @@ def run_generation(params_file, ckpt_file=None, batch=None):
                                name='eps_z')
         eps_x = tf.placeholder(tf.float32, shape=(pd['seq_length'], pd['batch_size'], pd['x_dim']),
                                name='eps_x')
-        if pd['model'] == 'gm_out':
-            eps_pi = tf.placeholder(tf.int32, shape=(pd['seq_length'], pd['batch_size']))
-            eps_out = [eps_x, eps_pi]
-        else:
-            eps_out = eps_x
+        # if pd['model'] == 'gm_out':
+        #     eps_pi = tf.placeholder(tf.int32, shape=(pd['seq_length'], pd['batch_size']))
+        #     eps_out = [eps_x, eps_pi]
+        # else:
+        #     eps_out = eps_x
         hid_pl = tf.placeholder(tf.float32, shape=(pd['batch_size'], pd['hid_state_size']), name='ht_init')
         count = tf.constant(0, dtype=tf.float32, name='counter')
         f_state = netgen.fd['f_theta'].zero_state(pd['batch_size'], tf.float32)
-        loop_vars = [in_pl, hid_pl, count, f_state, eps_z, eps_out]
+        loop_vars = [in_pl, hid_pl, count, f_state, eps_z, eps_x]
 
         _ = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
 
@@ -236,7 +232,7 @@ def run_generation(params_file, ckpt_file=None, batch=None):
             loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars)
         x_final = loop_res[0]
 
-        batch_dict = get_gen_batch_dict_generator(hid_pl, eps_z, eps_out, pd)
+        batch_dict = get_gen_batch_dict_generator(hid_pl, eps_z, eps_x, pd)
 
         with tf.Session() as sess:
             saver = tf.train.Saver()

@@ -3,7 +3,7 @@ PARAM_DICT = dict()
 # data path
 PARAM_DICT['series'] = -1
 PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_200_pad_0_max_300_norm.npy'
-PARAM_DICT['log_path'] = 'data/logs/handwriting_49/'
+PARAM_DICT['log_path'] = 'data/logs/handwriting_50/'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 200
 PARAM_DICT['load_path'] = None  # 'data/logs/handwriting_47/'
@@ -15,7 +15,7 @@ PARAM_DICT['modes_out'] = 1
 # specify global settings
 PARAM_DICT['batch_size'] = 100
 PARAM_DICT['x_dim'] = 2
-PARAM_DICT['z_dim'] = 10
+PARAM_DICT['z_dim'] = 2
 PARAM_DICT['seq_length'] = 200
 PARAM_DICT['learning_rate'] = 0.0001
 PARAM_DICT['max_iter'] = 10000

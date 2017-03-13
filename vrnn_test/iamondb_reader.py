@@ -39,9 +39,11 @@ def mat_to_plot(mat, meanx=0., meany=0., stdx=1., stdy=1.):
 
     # add third row if missing
     if mat.shape[1] == 2:
-        t = np.zeros((mat.shape[0], 1))
-        t[-1, 0] = 1
-        mat = np.concatenate([mat, t], axis=1)
+        mat = np.concatenate([mat, np.zeros((mat.shape[0], 1))], axis=1)
+    else:
+        mat[:, 2] = np.ceil(mat[:, 2] - 0.5)
+    mat[-1, -1] = 1.0
+
     # renorm
     mat[:, 0] = mat[:, 0] * stdx + meanx
     mat[:, 1] = mat[:, 1] * stdy + meany
@@ -62,13 +64,9 @@ def mat_to_plot(mat, meanx=0., meany=0., stdx=1., stdy=1.):
 
 
 def parse_data_set(target_dir, root_dir='data/handwriting/xml_data_root/lineStrokes'):
-    # for file in os.listdir(root_dir):
-    #     if file.endswith('.xml'):
-    #         print(file)
-    #         break
     matches = []
-    for root, dirnames, filenames in os.walk(root_dir):
-        for filename in fnmatch.filter(filenames, '*.xml'):
+    for root, _, file_names in os.walk(root_dir):
+        for filename in fnmatch.filter(file_names, '*.xml'):
             matches.append(os.path.join(root, filename))
     print(len(matches))
     print(matches[0])
@@ -163,6 +161,18 @@ def no_values_check(val):
     seq = np.sum(seq, 1)
     print(np.sum(seq))
     print(np.sum(seq == 2*val))
+
+
+def get_list_of_seqs(source_dir, seq_file='sequences.npy', idx_file='sequence_indices.npy', normalize=True):
+    seq_mat, idx_mat = load_sequences(source_dir, seq_file, idx_file)
+    seq_mat = seq_mat.astype(float)
+    if normalize:
+        mean = np.mean(seq_mat, axis=0)
+        std = np.std(seq_mat, axis=0)
+        seq_mat[:, 0] = (seq_mat[:, 0] - mean[0]) / std[0]
+        seq_mat[:, 1] = (seq_mat[:, 1] - mean[1]) / std[1]
+    split_list = np.split(seq_mat, idx_mat[1:], axis=0)
+    return split_list
 
 # no_values_check(500)
 

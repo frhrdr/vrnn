@@ -1,9 +1,11 @@
 # vrnn
 
-### cut'n'paste:
+### cut&paste:
 - ssh -L 16006:127.0.0.1:6006 amlab
 - scp rough_cut_200_pad_0_max_300_norm_xyonly.npy fharder@146.50.28.47:~/generative_audio_vrnn/vrnn_test/data/handwriting/
 - scp fharder@146.50.28.47:~/generative_audio_vrnn/vrnn_test/data/logs/handwriting_/checkpoint .
+- contrib training bucket by seq len
+- tensorarray
 
 ###done:
 
@@ -20,7 +22,7 @@
 - report
 
 ###notes:
-- reconsider gradient clipping 
+- reconsider gradient clipping and masking
 
 ###test log:
 - test 08: +-1 clipping led to steady run over 5000 iterations... no idea why.
