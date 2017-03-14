@@ -22,6 +22,8 @@
 ###notes:
 - reconsider gradient clipping and masking
 - contrib training bucket by seq len & tensorarray
+- test single latent dim
+
 
 ###test log:
 - test 08: +-1 clipping led to steady run over 5000 iterations... no idea why.
@@ -117,4 +119,6 @@ assumed potential causes:
 
 - test 50 as 49 but with zdim = 2 and biases for dist params
 
-- 
+- test 51 increased model size and gm out, training on 500cut. huge error spike at about 1.3k iterations from which it does not seem to recover
+
+- test 52 same as 51, with gauss out, lowered lr and masking
