@@ -114,8 +114,8 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
         zero_vals = tf.abs(x_target - tf.constant(param_dict['mask_value'], dtype=tf.float32))
         mask = tf.sign(tf.reduce_max(zero_vals, axis=1))
         num_live_samples = tf.reduce_sum(mask, axis=0)
-        log_p = tf.reduce_sum(log_p * mask, name='log_p_sum') / num_live_samples
-        kl_div = tf.reduce_sum(kl_div * mask, name='kl_div_sum') / num_live_samples
+        log_p = tf.reduce_sum(tf.where(tf.equal(mask, 0.0), mask, log_p), name='log_p_sum') / num_live_samples
+        kl_div = tf.reduce_sum(tf.where(tf.equal(mask, 0.0), mask, kl_div), name='kl_div_sum') / num_live_samples
         bound = kl_div - log_p
         if 'bin' in param_dict['model']:
             maybe_ce[0] = tf.where(tf.equal(mask, 0.0), mask, maybe_ce[0])
