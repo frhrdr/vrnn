@@ -128,8 +128,10 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
             bound += tf.reduce_mean(maybe_ce[0])
 
     norm = tf.reduce_mean(log_x_norm)
-    exp = tf.reduce_mean(log_x_exp)
-    diff = tf.reduce_mean(abs_diff)
+    # exp = tf.reduce_mean(log_x_exp)
+    # diff = tf.reduce_mean(abs_diff)
+    exp = num_live_samples
+    diff = tf.reduce_mean(mask)
     sub_losses = [kl_div, log_p, norm, exp, diff] + maybe_ce
 
     return bound, sub_losses
