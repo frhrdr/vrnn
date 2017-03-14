@@ -100,14 +100,12 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
         dist_target = tf.slice(x_target, [0, 0], [-1, param_dict['x_dim']])
         bin_target = tf.slice(x_target, [0, param_dict['x_dim']], [-1, 1])
         log_p, log_x_norm, log_x_exp, abs_diff = gaussian_log_p(params_out[:-1], dist_target, param_dict['x_dim'])
-        char_ce = ce_loss(params_out[-1], bin_target)
-        maybe_ce = [tf.reduce_mean(char_ce)]
+        maybe_ce = [ce_loss(params_out[-1], bin_target)]
     elif param_dict['model'] == 'gm_out_bin':
         dist_target = tf.slice(x_target, [0, 0], [-1, param_dict['x_dim']])
         bin_target = tf.slice(x_target, [0, param_dict['x_dim']], [-1, 1])
         log_p, log_x_norm, log_x_exp, abs_diff = gm_log_p(params_out[:-1], dist_target, param_dict['x_dim'])
-        char_ce = ce_loss(params_out[-1], bin_target)
-        maybe_ce = [tf.reduce_mean(char_ce)]
+        maybe_ce = [ce_loss(params_out[-1], bin_target)]
     else:
         raise NotImplementedError
 
@@ -118,13 +116,16 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
         log_p = tf.reduce_sum(log_p * mask, name='log_p_sum') / num_live_samples
         kl_div = tf.reduce_sum(kl_div * mask, name='kl_div_sum') / num_live_samples
         bound = kl_div - log_p
+        if 'bin' in param_dict['model']:
+
+            bound += tf.reduce_sum(maybe_ce[0] * mask) / num_live_samples
+
     else:
         kl_div = tf.reduce_mean(kl_div)
         log_p = tf.reduce_mean(log_p)
         bound = kl_div - log_p
-
-    if 'bin' in param_dict['model']:
-        bound += maybe_ce[0]
+        if 'bin' in param_dict['model']:
+            bound += tf.reduce_mean(maybe_ce[0])
 
     norm = tf.reduce_mean(log_x_norm)
     exp = tf.reduce_mean(log_x_exp)
