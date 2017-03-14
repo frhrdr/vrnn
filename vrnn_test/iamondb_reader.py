@@ -181,10 +181,10 @@ def get_list_of_seqs(source_dir, seq_file='sequences.npy', idx_file='sequence_in
 # mat_to_plot(a)
 # parse_data_set('data/handwriting')
 # print(load_and_cut_sequences('data/handwriting').shape)
-mat, m, s = load_and_cut_sequences('data/handwriting', cut_len=500, mask=False, normalize=True)
-np.save('data/handwriting/rough_cut_500_pad_0_max_300_norm.npy', mat)
-print(m)
-print(s)
+# mat, m, s = load_and_cut_sequences('data/handwriting', cut_len=500, mask=False, normalize=True)
+# np.save('data/handwriting/rough_cut_500_pad_0_max_300_norm.npy', mat)
+# print(m)
+# print(s)
 
 # a = np.load('data/handwriting/rough_cut_200_pad_0_max_300_norm.npy')
 # m = [7.61830955,  0.54058467,  0.03867651]  # [0., 0.]  #

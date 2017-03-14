@@ -3,7 +3,7 @@ PARAM_DICT = dict()
 # data path
 PARAM_DICT['series'] = -1
 PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_500_pad_0_max_300_norm.npy'
-PARAM_DICT['log_path'] = 'data/logs/handwriting_50/'
+PARAM_DICT['log_path'] = 'data/logs/handwriting_51/'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 200
 PARAM_DICT['load_path'] = None  # 'data/logs/handwriting_47/'
