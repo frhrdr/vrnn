@@ -123,7 +123,8 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
             bound += maybe_ce[0]
         norm = tf.reduce_sum(tf.where(tf.equal(mask, 0.0), mask, log_x_norm)) / num_live_samples
         exp = tf.reduce_sum(tf.where(tf.equal(mask, 0.0), mask, log_x_exp)) / num_live_samples
-        diff = tf.reduce_sum(tf.where(tf.equal(mask, 0.0), mask, abs_diff)) / num_live_samples
+        diff = tf.reduce_sum(tf.where(tf.equal(mask, 0.0), mask,
+                                      tf.reduce_mean(abs_diff, axis=[1]))) / num_live_samples
 
     else:
         kl_div = tf.reduce_mean(kl_div)
