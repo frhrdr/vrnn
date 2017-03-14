@@ -187,7 +187,8 @@ def get_list_of_seqs(source_dir, seq_file='sequences.npy', idx_file='sequence_in
 # print(s)
 # mat_to_plot(mat[:, 1, :], m[0], m[1], s[0], s[1])
 
-# a = np.load('data/handwriting/rough_cut_200_pad_0_max_300_norm.npy')
+# a = np.load('data/handwriting/rough_cut_500_pad_500_max_300_norm.npy')
+# print(np.min(a))
 # m = [7.61830955,  0.54058467,  0.03867651]  # [0., 0.]  #
 # s = [33.74283029,  36.72359088,   0.19282281]  # [1., 1.]  #
 

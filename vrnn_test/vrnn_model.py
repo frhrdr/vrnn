@@ -85,7 +85,8 @@ def gaussian_kl_div(mean_0, cov_0, mean_1, cov_1, dim):
 
 
 def ce_loss(logits_out, bin_target):
-    return tf.nn.sigmoid_cross_entropy_with_logits(logits=logits_out, labels=bin_target, name='ce_loss')
+    l = tf.nn.sigmoid_cross_entropy_with_logits(logits=logits_out, labels=bin_target, name='ce_loss')
+    return tf.squeeze(l)
 
 
 def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
@@ -117,9 +118,9 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
         kl_div = tf.reduce_sum(kl_div * mask, name='kl_div_sum') / num_live_samples
         bound = kl_div - log_p
         if 'bin' in param_dict['model']:
-            maybe_ce[0] = tf.reduce_sum(maybe_ce[0] * mask) / num_live_samples
+            maybe_ce[0] = tf.where(mask == 0, maybe_ce[0], mask)
+            maybe_ce[0] = tf.reduce_sum(maybe_ce[0]) / num_live_samples
             bound += maybe_ce[0]
-
     else:
         kl_div = tf.reduce_mean(kl_div)
         log_p = tf.reduce_mean(log_p)
@@ -128,10 +129,10 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
             bound += tf.reduce_mean(maybe_ce[0])
 
     norm = tf.reduce_mean(log_x_norm)
-    # exp = tf.reduce_mean(log_x_exp)
-    # diff = tf.reduce_mean(abs_diff)
-    exp = num_live_samples
-    diff = tf.reduce_min(mask)
+    exp = tf.reduce_mean(log_x_exp)
+    diff = tf.reduce_mean(abs_diff)
+    # exp = num_live_samples
+    # diff = tf.reduce_min(mask)
     sub_losses = [kl_div, log_p, norm, exp, diff] + maybe_ce
 
     return bound, sub_losses
