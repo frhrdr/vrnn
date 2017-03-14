@@ -156,7 +156,7 @@ def run_training(pd):
 
                 summary_writer.add_summary(summary_str, it)
 
-                if (pd['print_freq'] > 0) and (it + 1) % 50 == 0:
+                if (pd['print_freq'] > 0) and (it + 1) % 100 == 0:
                     summary_writer.flush()
 
                 if (pd['print_freq'] > 0) and (it + 1) % pd['print_freq'] == 0:
