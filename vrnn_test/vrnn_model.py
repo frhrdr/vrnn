@@ -121,6 +121,10 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
             maybe_ce[0] = tf.where(tf.equal(mask, 0.0), mask, maybe_ce[0])
             maybe_ce[0] = tf.reduce_sum(maybe_ce[0]) / num_live_samples
             bound += maybe_ce[0]
+        norm = tf.reduce_sum(tf.where(tf.equal(mask, 0.0), mask, log_x_norm)) / num_live_samples
+        exp = tf.reduce_sum(tf.where(tf.equal(mask, 0.0), mask, log_x_exp)) / num_live_samples
+        diff = tf.reduce_sum(tf.where(tf.equal(mask, 0.0), mask, abs_diff)) / num_live_samples
+
     else:
         kl_div = tf.reduce_mean(kl_div)
         log_p = tf.reduce_mean(log_p)
@@ -128,11 +132,9 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
         if 'bin' in param_dict['model']:
             bound += tf.reduce_mean(maybe_ce[0])
 
-    norm = tf.reduce_mean(log_x_norm)
-    exp = tf.reduce_mean(log_x_exp)
-    diff = tf.reduce_mean(abs_diff)
-    # exp = num_live_samples
-    # diff = tf.reduce_min(mask)
+        norm = tf.reduce_mean(log_x_norm)
+        exp = tf.reduce_mean(log_x_exp)
+        diff = tf.reduce_mean(abs_diff)
     sub_losses = [kl_div, log_p, norm, exp, diff] + maybe_ce
 
     return bound, sub_losses
