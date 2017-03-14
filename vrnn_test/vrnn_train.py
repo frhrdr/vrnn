@@ -45,7 +45,7 @@ def get_tracking_placeholders(pd):
     cov_0 = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['z_dim']], name='cov_prior_debug')
     mean_z = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['z_dim']], name='mean_z_debug')
     cov_z = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['z_dim']], name='cov_z_debug')
-    if pd['model'] == 'gm_out':
+    if 'gm' in pd['model']:
         mean_x = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['modes_out'], pd['x_dim']],
                              name='mean_x_debug')
         cov_x = tf.constant(0, dtype=tf.float32, shape=[pd['batch_size'], pd['modes_out'], pd['x_dim']],
