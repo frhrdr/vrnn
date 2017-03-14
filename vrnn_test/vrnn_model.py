@@ -117,8 +117,8 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
         kl_div = tf.reduce_sum(kl_div * mask, name='kl_div_sum') / num_live_samples
         bound = kl_div - log_p
         if 'bin' in param_dict['model']:
-
-            bound += tf.reduce_sum(maybe_ce[0] * mask) / num_live_samples
+            maybe_ce[0] = tf.reduce_sum(maybe_ce[0] * mask) / num_live_samples
+            bound += maybe_ce[0]
 
     else:
         kl_div = tf.reduce_mean(kl_div)
