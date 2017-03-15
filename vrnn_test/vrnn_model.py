@@ -121,10 +121,10 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
             maybe_ce[0] = tf.where(tf.equal(mask, 0.0), mask, maybe_ce[0])
             maybe_ce[0] = tf.reduce_sum(maybe_ce[0]) / num_live_samples
             bound += maybe_ce[0]
-        norm = tf.reduce_sum(tf.where(tf.equal(mask, 0.0), mask, log_x_norm)) / num_live_samples
-        exp = tf.reduce_sum(tf.where(tf.equal(mask, 0.0), mask, log_x_exp)) / num_live_samples
-        diff = tf.reduce_sum(tf.where(tf.equal(mask, 0.0), mask,
-                                      tf.reduce_mean(abs_diff, axis=[1]))) / num_live_samples
+        # norm = tf.reduce_sum(tf.where(tf.equal(mask, 0.0), mask, log_x_norm)) / num_live_samples
+        # exp = tf.reduce_sum(tf.where(tf.equal(mask, 0.0), mask, log_x_exp)) / num_live_samples
+        # diff = tf.reduce_sum(tf.where(tf.equal(mask, 0.0), mask,
+        #                               tf.reduce_mean(abs_diff, axis=[1]))) / num_live_samples
 
     else:
         kl_div = tf.reduce_mean(kl_div)
@@ -133,9 +133,9 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
         if 'bin' in param_dict['model']:
             bound += tf.reduce_mean(maybe_ce[0])
 
-        norm = tf.reduce_mean(log_x_norm)
-        exp = tf.reduce_mean(log_x_exp)
-        diff = tf.reduce_mean(abs_diff)
+    norm = tf.reduce_mean(log_x_norm)
+    exp = tf.reduce_mean(log_x_exp)
+    diff = tf.reduce_mean(abs_diff)
     sub_losses = [kl_div, log_p, norm, exp, diff] + maybe_ce
 
     return bound, sub_losses
@@ -151,8 +151,8 @@ def optimization(err_acc, learning_rate):
 
 
 def train_loop(x_pl, f_theta, bound_acc, count, f_state, eps_z, param_dict, fun_dict, tracked_tensors):
-    x_t = tf.squeeze(tf.slice(x_pl, [tf.to_int32(count), 0, 0], [1, -1, -1]))
-    eps_z_t = tf.squeeze(tf.slice(eps_z, [tf.to_int32(count), 0, 0], [1, -1, -1]))
+    x_t = tf.squeeze(tf.slice(x_pl, [tf.to_int32(count), 0, 0], [1, -1, -1]), axis=[0])
+    eps_z_t = tf.squeeze(tf.slice(eps_z, [tf.to_int32(count), 0, 0], [1, -1, -1]), axis=[0])
 
     mean_0, cov_0, mean_z, cov_z, params_out, f_theta, f_state = inference(x_t, f_theta, f_state, eps_z_t, fun_dict)
     bound_step, sub_losses_step = loss(x_t, mean_0, cov_0, mean_z, cov_z, params_out, param_dict)

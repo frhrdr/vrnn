@@ -123,7 +123,6 @@ def out_to_normal(net_fun, params):
                                                                                       stddev=params['init_sig_var']))
             cov_biases = tf.get_variable(name + '_c_b', initializer=tf.random_normal([d_dist], mean=0))
             cov = tf.nn.softplus(tf.matmul(net_out, cov_weights) + cov_biases)
-
         return mean, cov
     return f
 
