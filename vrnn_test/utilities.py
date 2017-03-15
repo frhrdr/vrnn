@@ -207,7 +207,7 @@ def out_to_gm_plus_binary(net_fun, params):
             cov = tf.reshape(tf.nn.softplus(tf.matmul(net_out, cov_weights) + cov_biases), [-1, num_modes, d_dist])
 
             bin_weights = tf.get_variable(name + '_bin_w', initializer=tf.random_normal([d_out, 1], mean=0, stddev=0.01))
-            bin_biases = tf.get_variable(name + '_bin_b', initializer=tf.random_normal([d_out, 1], mean=0, stddev=0.01))
+            bin_biases = tf.get_variable(name + '_bin_b', initializer=tf.random_normal([1], mean=0, stddev=0.01))
             bin_logit = tf.matmul(net_out, bin_weights) + bin_biases
         return mean, cov, pi_logit, bin_logit
     return f
