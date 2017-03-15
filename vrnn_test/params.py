@@ -15,7 +15,7 @@ PARAM_DICT['modes_out'] = 10
 # specify global settings
 PARAM_DICT['batch_size'] = 100
 PARAM_DICT['x_dim'] = 2
-PARAM_DICT['z_dim'] = 1
+PARAM_DICT['z_dim'] = 2
 PARAM_DICT['seq_length'] = 500
 PARAM_DICT['learning_rate'] = 0.00003
 PARAM_DICT['max_iter'] = 10000
