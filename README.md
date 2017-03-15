@@ -11,18 +11,18 @@
 - build VRNN, run on handwriting data
 
 ###in progress:
-- try and get an actual mixture going
-- test binary loss
+- try and get an actual mixture and binary loss
 
 ###to do:
-- extend to full length data
-- consider correlated output dist
+- extend to full length data? or stay at 500?
+- consider correlated output dist - naaaa, given how tiny cov gets, this would have near to no effect
 - report
 
 ###notes:
-- reconsider gradient clipping and masking
+- reconsider gradient clipping
 - contrib training bucket by seq len & tensorarray
 - test single latent dim
+- masking: renormalizing over remaining over unmasked errors might make them overly important
 
 
 ###test log:
@@ -121,4 +121,4 @@ assumed potential causes:
 
 - test 51 increased model size and gm out, training on 500cut. huge error spike at about 1.3k iterations from which it does not seem to recover
 
-- test 52 same as 51, with gauss out, lowered lr and masking
+- test 52 same as 51, with gauss out, lowered lr and masking takes long time - stopped at 7500 iterations. continue tomorrow
