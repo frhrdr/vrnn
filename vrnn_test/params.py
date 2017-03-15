@@ -6,7 +6,7 @@ PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_500_pad_500_max_300_norm.n
 PARAM_DICT['log_path'] = 'data/logs/handwriting_53/'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 200
-PARAM_DICT['load_path'] = 'data/logs/handwriting_52/'  # 'data/logs/handwriting_47/'
+PARAM_DICT['load_path'] = 'data/logs/handwriting_52/ckpt-7500'  # 'data/logs/handwriting_47/'
 
 # other architectures put on halt
 PARAM_DICT['model'] = 'gauss_out_bin'  # options: gauss_out, gm_out, soon: gauss_out_bin, gm_out_bin
