@@ -10,7 +10,7 @@ mode = 1
 if mode == 1:  # run training
     run_training(PARAM_DICT)
 elif mode == 2:  # run generation, then plot the results
-    x = run_generation(PARAM_DICT['log_path'] + 'params.pkl', ckpt_file=PARAM_DICT['log_path'] + 'ckpt-1000')
+    x = run_generation(PARAM_DICT['log_path'] + 'params.pkl', ckpt_file=PARAM_DICT['log_path'] + 'ckpt-6500')
 
     # mask 200 cut
     # [ 7.65791469  0.54339499  0.03887757]
@@ -23,10 +23,18 @@ elif mode == 2:  # run generation, then plot the results
     # no mask 200 cut
     # [ 7.61830955  0.54058467  0.03867651]
     # [ 33.74283029  36.72359088   0.19282281]
-    meanx = 7.61830955
-    meany = 0.54058467
-    stdx = 33.74283029
-    stdy = 36.72359088
+    # meanx = 7.61830955
+    # meany = 0.54058467
+    # stdx = 33.74283029
+    # stdy = 36.72359088
+
+    # mask 500 cut
+    # [ 7.97040614,  0.29582727,  0.04015935]
+    # [ 34.80169994,  36.07062753,   0.19633283]
+    meanx = 7.97040614
+    meany = 0.29582727
+    stdx = 34.80169994
+    stdy = 36.07062753
 
     # meanx = 0.0
     # meany = 0.0

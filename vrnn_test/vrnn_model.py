@@ -21,8 +21,8 @@ def sample(params, eps, dist='gauss'):
         chosen_covs = tf.gather_nd(covs, idx_tensor)
         s = chosen_means + tf.sqrt(chosen_covs) * eps
 
-        hist = tf.histogram_fixed_width(tf.to_float(choices), value_range=[0.0, float(modes)], nbins=modes)
-        s = tf.Print(s, [tf.reduce_mean(pi_logits, axis=[0]), hist], message='pi logits & picks: ', summarize=modes)
+        # hist = tf.histogram_fixed_width(tf.to_float(choices), value_range=[0.0, tf.to_float(modes)], nbins=modes)
+        # s = tf.Print(s, [tf.reduce_mean(pi_logits, axis=[0]), hist], message='pi logits & picks: ', summarize=modes)
     else:
         raise NotImplementedError
 
@@ -197,24 +197,8 @@ def generation(hid_pl, f_state, eps_z, eps_x, pd, fd):
 
 
 def gen_loop(x_pl, hid_pl, count, f_state, eps_z, eps_x, pd, fun_dict):
-    # if pd['model'] == 'gauss_out':
-    #     eps_x = eps_out
-    # elif pd['model'] == 'gm_out':
-    #     eps_x = eps_out[0]
-    # else:
-    #     raise NotImplementedError
-
-    eps_z_t = tf.squeeze(tf.slice(eps_z, [tf.to_int32(count), 0, 0], [1, -1, -1]))
-    eps_x_t = tf.squeeze(tf.slice(eps_x, [tf.to_int32(count), 0, 0], [1, -1, -1]))
-
-    # if pd['model'] == 'gauss_out':
-    #     eps_out_t = eps_x_t
-    # elif pd['model'] == 'gm_out':
-    #     eps_pi = eps_out[1]
-    #     eps_pi_t = tf.squeeze(tf.slice(eps_pi, [tf.to_int32(count), 0], [1, -1]))
-    #     eps_out_t = (eps_x_t, eps_pi_t)
-    # else:
-    #     raise NotImplementedError
+    eps_z_t = tf.squeeze(tf.slice(eps_z, [tf.to_int32(count), 0, 0], [1, -1, -1]), axis=[0])
+    eps_x_t = tf.squeeze(tf.slice(eps_x, [tf.to_int32(count), 0, 0], [1, -1, -1]), axis=[0])
 
     x_t, f_out, f_state = generation(hid_pl, f_state, eps_z_t, eps_x_t, pd, fun_dict)
 

@@ -122,3 +122,8 @@ assumed potential causes:
 - test 51 increased model size and gm out, training on 500cut. huge error spike at about 1.3k iterations from which it does not seem to recover
 
 - test 52 same as 51, with gauss out, lowered lr and masking takes long time - stopped at 7500 iterations. continue tomorrow
+
+- test 53 nevermind, was converged
+
+- test 54 single latent dimension. pix 38-40 not bad. no binary activation
+
