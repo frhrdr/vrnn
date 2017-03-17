@@ -21,8 +21,8 @@ def sample(params, eps, dist='gauss'):
         chosen_covs = tf.gather_nd(covs, idx_tensor)
         s = chosen_means + tf.sqrt(chosen_covs) * eps
 
-        # hist = tf.histogram_fixed_width(tf.to_float(choices), value_range=[0.0, tf.to_float(modes)], nbins=modes)
-        # s = tf.Print(s, [tf.reduce_mean(pi_logits, axis=[0]), hist], message='pi logits & picks: ', summarize=modes)
+        hist = tf.histogram_fixed_width(tf.to_float(choices), value_range=[0.0, tf.to_float(modes)], nbins=modes)
+        s = tf.Print(s, [tf.reduce_mean(pi_logits, axis=[0]), hist], message='pi logits & picks: ', summarize=modes)
     else:
         raise NotImplementedError
 

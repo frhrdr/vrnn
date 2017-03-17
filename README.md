@@ -127,3 +127,4 @@ assumed potential causes:
 
 - test 54 single latent dimension. pix 38-40 not bad. no binary activation
 
+- test 55 continued 54, improved train error but deteriorating results

@@ -1,3 +1,4 @@
+from tensorflow.examples.tutorials.mnist import input_data
 import os.path
 import pickle
 import time
@@ -9,7 +10,18 @@ import vrnn_model as model
 from utilities import NetGen
 
 
-# load param_dict for the overall model
+def get_sequential_mnist_batch_dict_generator(in_pl, hid_pl, eps_z, pd, data_dir='data/mnist/', stage='train'):
+    if stage == 'train':
+        data = input_data.read_data_sets(data_dir).train
+    else:
+        data = input_data.read_data_sets(data_dir).validation
+    d = {}
+    while True:
+        x = np.reshape(data.next_batch(pd['batch_size'])[0], (pd['batch_size'], 28, 28))
+        d[in_pl] = np.transpose(x, (1, 0, 2))
+        d[hid_pl] = np.zeros((pd['batch_size'], pd['hid_state_size']))
+        d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['z_dim']))
+        yield d
 
 
 def get_train_batch_dict_generator(data, in_pl, hid_pl, eps_z, pd):
@@ -28,7 +40,6 @@ def get_train_batch_dict_generator(data, in_pl, hid_pl, eps_z, pd):
 
         d[hid_pl] = np.zeros((pd['batch_size'], pd['hid_state_size']))
         d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['z_dim']))
-        # d[eps_z] = np.zeros((pd['seq_length'], pd['batch_size'], pd['z_dim']))  # for debugging
         yield d
 
 
@@ -62,9 +73,6 @@ def run_training(pd):
     if not os.path.exists(pd['log_path']):
         os.makedirs(pd['log_path'])
     pickle.dump(pd, open(pd['log_path'] + '/params.pkl', 'wb'))
-
-    # load the data. expect numpy array of time_steps by samples by input dimension
-    data = np.load(pd['data_path'])
 
     netgen = NetGen()
     nets = ['phi_x', 'phi_prior', 'phi_enc', 'phi_z', 'phi_dec', 'f_theta']
@@ -100,26 +108,13 @@ def run_training(pd):
 
         train_op = model.optimization(bound_final, pd['learning_rate'])
 
-        batch_dict = get_train_batch_dict_generator(data, in_pl, hid_pl, eps_z, pd)
-
-        # SUMMARIES
-        # tv = tf.trainable_variables()
-        # tv_summary = [tf.reduce_mean(k) for k in tv]
-        # tv_print = tf.Print(bound_final, tv_summary, message='tv ')
-
-        # for v in tv:
-        #     tf.summary.histogram('vars/' + v.name, v)
-        #
-        # grads = [g for g in tf.gradients(bound_final, tv) if g is not None]
-        # for g in grads:
-        #     name = g.name
-        #     tf.summary.histogram('grads/raw/' + name, g)
-        #     g = tf.maximum(g, -1000)
-        #     g = tf.minimum(g, 1000)
-        #     tf.summary.histogram('grads/cut1k/' + name, g)
-        #     g = tf.maximum(g, -10)
-        #     g = tf.minimum(g, 10)
-        #     tf.summary.histogram('grads/cut10/' + name, g)
+        if pd['train_data_path'] == 'load_mnist':
+            train_dict = get_sequential_mnist_batch_dict_generator(in_pl, hid_pl, eps_z, pd, stage='train')
+            valid_data = None
+        else:
+            train_data = np.load(pd['train_data_path'])
+            valid_data = np.load(pd['valid_data_path'])
+            train_dict = get_train_batch_dict_generator(train_data, in_pl, hid_pl, eps_z, pd)
 
         tf.summary.scalar('bound', bound_final)
         loss_names = ['kldiv', 'log_p', 'norm', 'exp', 'x_diff', 'bin_ce']
@@ -136,6 +131,8 @@ def run_training(pd):
 
         summary_op = tf.summary.merge_all()
 
+        valid_bound = tf.summary.scalar('validation_bound', bound_final)
+
         with tf.Session() as sess:
             summary_writer = tf.summary.FileWriter(pd['log_path'] + '/summaries', sess.graph)
             start_time = time.time()
@@ -150,14 +147,26 @@ def run_training(pd):
             saver = tf.train.Saver()
 
             for it in range(pd['max_iter']):
-                feed = batch_dict.next()
+                feed = train_dict.next()
 
                 _, err, summary_str = sess.run([train_op, bound_final, summary_op], feed_dict=feed)
 
                 summary_writer.add_summary(summary_str, it)
 
-                if (pd['print_freq'] > 0) and (it + 1) % 100 == 0:
+                if (it + 1) % 100 == 0:
                     summary_writer.flush()
+
+                if (pd['valid_freq'] > 0) and (it + 1) % pd['valid_freq'] == 0:
+                    valid_dict = get_train_batch_dict_generator(valid_data, in_pl, hid_pl, eps_z, pd)
+                    num_it = int(325 / pd['batch_size'])
+                    err_acc = 0.0
+                    for v_it in range(num_it):
+                        feed = valid_dict.next()
+
+                        _, err, summary_str = sess.run([train_op, bound_final, valid_bound], feed_dict=feed)
+                        summary_writer.add_summary(summary_str, it)
+                        err_acc += err
+                    print('Iteration: ', it + 1, ' Validation Error: ', err_acc)
 
                 if (pd['print_freq'] > 0) and (it + 1) % pd['print_freq'] == 0:
 
@@ -171,22 +180,11 @@ def run_training(pd):
 
 
 def get_gen_batch_dict_generator(hid_pl, eps_z, eps_x, pd):
-    # if pd['model'] == 'gauss_out':
-    #     eps_x = eps_out
-    # elif pd['model'] == 'gm_out':
-    #     eps_x, eps_pi = eps_out
-    # else:
-    #     raise NotImplementedError
-
     d = {}
     while True:
         d[hid_pl] = np.zeros((pd['batch_size'], pd['hid_state_size']))
-        # d[eps_z] = np.zeros((pd['seq_length'], pd['batch_size'], pd['z_dim']))
         d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['z_dim']))
-        # d[eps_x] = np.zeros((pd['seq_length'], pd['batch_size'], pd['x_dim']))
         d[eps_x] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['x_dim']))
-        # if eps_pi is not None:
-        #     d[eps_pi] = np.random.randint(1, size=(pd['seq_length'], pd['batch_size']))
         yield d
 
 
@@ -244,6 +242,25 @@ def run_generation(params_file, ckpt_file=None, batch=None):
 
             return x_gen
 
+
+# SUMMARIES
+# tv = tf.trainable_variables()
+# tv_summary = [tf.reduce_mean(k) for k in tv]
+# tv_print = tf.Print(bound_final, tv_summary, message='tv ')
+
+# for v in tv:
+#     tf.summary.histogram('vars/' + v.name, v)
+#
+# grads = [g for g in tf.gradients(bound_final, tv) if g is not None]
+# for g in grads:
+#     name = g.name
+#     tf.summary.histogram('grads/raw/' + name, g)
+#     g = tf.maximum(g, -1000)
+#     g = tf.minimum(g, 1000)
+#     tf.summary.histogram('grads/cut1k/' + name, g)
+#     g = tf.maximum(g, -10)
+#     g = tf.minimum(g, 10)
+#     tf.summary.histogram('grads/cut10/' + name, g)
 
 # def run_read_then_continue(params_file, read_seq, ckpt_file=None, batch_size=1):  # seems nonsensical
 #     # build train model without actual train-op and run on inputs

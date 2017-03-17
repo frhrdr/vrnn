@@ -2,20 +2,21 @@ PARAM_DICT = dict()
 
 # data path
 PARAM_DICT['series'] = -1
-PARAM_DICT['data_path'] = 'data/handwriting/rough_cut_500_pad_500_max_300_norm.npy'
-PARAM_DICT['log_path'] = 'data/logs/handwriting_55/'
+PARAM_DICT['train_data_path'] = 'load_mnist'  # 'data/handwriting/rough_cut_500_pad_500_max_300_norm.npy'
+PARAM_DICT['log_path'] = 'data/logs/mnist_01/'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 200
-PARAM_DICT['load_path'] = 'data/logs/handwriting_54/ckpt-6500'
+PARAM_DICT['valid_freq'] = -1
+PARAM_DICT['load_path'] = None  # 'data/logs/handwriting_54/ckpt-6500'
 
 # other architectures put on halt
-PARAM_DICT['model'] = 'gm_out_bin'  # options: gauss_out, gm_out, soon: gauss_out_bin, gm_out_bin
-PARAM_DICT['modes_out'] = 10
+PARAM_DICT['model'] = 'gauss_out'  # options: gauss_out, gm_out, soon: gauss_out_bin, gm_out_bin
+PARAM_DICT['modes_out'] = 1
 
 # specify global settings
 PARAM_DICT['batch_size'] = 100
-PARAM_DICT['x_dim'] = 2
-PARAM_DICT['z_dim'] = 1
+PARAM_DICT['x_dim'] = 28
+PARAM_DICT['z_dim'] = 10
 PARAM_DICT['seq_length'] = 500
 PARAM_DICT['learning_rate'] = 0.00003
 PARAM_DICT['max_iter'] = 10000

@@ -30,7 +30,7 @@ def xml_to_mat(xml_path, interpolate=False, max_dist=300):
     mat[1:, :2] = mat[1:, :2] - mat[:-1, :2]
     mat[0, :2] = 0
 
-    mat = np.maximum(mat, - max_dist)
+    mat = np.maximum(mat, -max_dist)
     mat = np.minimum(mat, max_dist)
     return mat
 
@@ -63,26 +63,57 @@ def mat_to_plot(mat, meanx=0., meany=0., stdx=1., stdy=1.):
     plt.show()
 
 
-def parse_data_set(target_dir, root_dir='data/handwriting/xml_data_root/lineStrokes'):
-    matches = []
+def parse_data_set(target_dir, root_dir='data/handwriting/xml_data_root/lineStrokes/',
+                   testset_spec='data/handwriting/testsetspecs.txt'):
+    if testset_spec is not None:
+        with open(testset_spec) as f:
+            test_dirs = [k.rstrip() for k in f.readlines()]
+    else:
+        test_dirs = []
+
+    train_matches = []
+    test_matches = []
     for root, _, file_names in os.walk(root_dir):
-        for filename in fnmatch.filter(file_names, '*.xml'):
-            matches.append(os.path.join(root, filename))
-    print(len(matches))
-    print(matches[0])
+        if root.split('/')[-1] in test_dirs:
+            for filename in fnmatch.filter(file_names, '*.xml'):
+                test_matches.append(os.path.join(root, filename))
+        else:
+            for filename in fnmatch.filter(file_names, '*.xml'):
+                train_matches.append(os.path.join(root, filename))
+    print(len(train_matches))
+    print(train_matches[0])
 
-    mat_list = []
-    for f in matches:
+    print(len(test_matches))
+    print(test_matches[0])
+
+    train_mat_list = []
+    for f in train_matches:
         mat = xml_to_mat(f)
-        mat_list.append(mat)
-        if len(mat_list) % 100 == 0:
-            print('loaded ' + str(len(mat_list)) + '/' + str(len(matches)) + ' files')
+        train_mat_list.append(mat)
+        if len(train_mat_list) % 500 == 0:
+            print('loaded ' + str(len(train_mat_list)) + '/' + str(len(train_matches)) + ' train files')
 
-    len_list = [k.shape[0] for k in mat_list]
-    sequence_indices = np.asarray(len_list)
-    sequences = np.concatenate(mat_list, axis=0)
-    np.save(target_dir + '/sequence_indices.npy', sequence_indices)
-    np.save(target_dir + '/sequences.npy', sequences)
+    len_list = [k.shape[0] for k in train_mat_list]
+    train_sequence_indices = np.asarray(len_list)
+    train_sequences = np.concatenate(train_mat_list, axis=0)
+    np.save(target_dir + '/train_sequence_indices.npy', train_sequence_indices)
+    np.save(target_dir + '/train_sequences.npy', train_sequences)
+
+    plt.hist(len_list, 50, normed=1, facecolor='green', alpha=0.75)
+    plt.show()
+
+    test_mat_list = []
+    for f in test_matches:
+        mat = xml_to_mat(f)
+        test_mat_list.append(mat)
+        if len(test_mat_list) % 100 == 0:
+            print('loaded ' + str(len(test_mat_list)) + '/' + str(len(test_matches)) + ' test files')
+
+    len_list = [k.shape[0] for k in test_mat_list]
+    train_sequence_indices = np.asarray(len_list)
+    train_sequences = np.concatenate(test_mat_list, axis=0)
+    np.save(target_dir + '/test_sequence_indices.npy', train_sequence_indices)
+    np.save(target_dir + '/test_sequences.npy', train_sequences)
 
     plt.hist(len_list, 50, normed=1, facecolor='green', alpha=0.75)
     plt.show()
@@ -181,8 +212,10 @@ def get_list_of_seqs(source_dir, seq_file='sequences.npy', idx_file='sequence_in
 # mat_to_plot(a)
 # parse_data_set('data/handwriting')
 # print(load_and_cut_sequences('data/handwriting').shape)
-# mat, m, s = load_and_cut_sequences('data/handwriting', cut_len=500, mask=True, normalize=True)
-# np.save('data/handwriting/rough_cut_500_pad_500_max_300_norm.npy', mat)
+# mat, m, s = load_and_cut_sequences('data/handwriting', seq_file='test_sequences.npy',
+#                                    idx_file='test_sequence_indices.npy',
+#                                    cut_len=500, mask=True, normalize=True)
+# np.save('data/handwriting/test_cut_500_pad_500_max_300_norm.npy', mat)
 # print(m)
 # print(s)
 # mat_to_plot(mat[:, 1, :], m[0], m[1], s[0], s[1])
@@ -208,3 +241,11 @@ def get_list_of_seqs(source_dir, seq_file='sequences.npy', idx_file='sequence_in
 # mask 500 cut
 # [ 7.97040614,  0.29582727,  0.04015935]
 # [ 34.80169994,  36.07062753,   0.19633283]
+
+# mask 500 cut train
+# [ 7.94481711,  0.29089536,  0.04015935]
+# [ 34.73663681,  35.96986879,   0.19633283]
+
+# mask 500 cut test
+# [ 9.00034885  0.49240353  0.04721629]
+# [ 37.33186456  39.92153479   0.21210118]

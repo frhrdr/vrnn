@@ -12,24 +12,6 @@ from params import *
 from vrnn_test import utilities as util
 
 
-# flags = tf.app.flags
-# FLAGS = flags.FLAGS
-# flags.DEFINE_float('learning_rate', 0.01, 'Initial learning rate.')
-# flags.DEFINE_integer('max_steps', 2000, 'Number of steps to run trainer.')
-# flags.DEFINE_integer('hidden1', 128, 'Number of units in hidden layer 1.')
-# flags.DEFINE_integer('hidden2', 32, 'Number of units in hidden layer 2.')
-# flags.DEFINE_integer('batch_size', 100, 'Batch size.  '
-#                      'Must divide evenly into the dataset sizes.')
-# flags.DEFINE_string('train_dir', 'data', 'Directory to put the training data.')
-# flags.DEFINE_boolean('fake_data', False, 'If true, uses fake data '
-#                      'for unit testing.')
-
-
-# data_sets = input_data.read_data_sets('data', False)
-# print(data_sets)
-# print(data_sets.train.next_batch(5))
-
-
 def placeholder_inputs(batch_size):
     images_placeholder = tf.placeholder(tf.float32, shape=(batch_size, IMG_DIMS))
     target_placeholder = tf.placeholder(tf.float32, shape=(batch_size, IMG_DIMS))
