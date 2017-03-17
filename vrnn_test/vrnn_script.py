@@ -6,12 +6,12 @@ from iamondb_reader import mat_to_plot
 from utilities import plot_img_mats
 import numpy as np
 
-mode = 1
+mode = 2
 
 if mode == 1:  # run training
     run_training(PARAM_DICT)
 elif mode == 2:  # run mnist generation
-    x = run_generation(PARAM_DICT['log_path'] + 'params.pkl', ckpt_file=PARAM_DICT['log_path'] + 'ckpt-10000')
+    x = run_generation(PARAM_DICT['log_path'] + 'params.pkl', ckpt_file=PARAM_DICT['log_path'] + 'ckpt-5500')
     x = np.transpose(x, (1, 0, 2))
     plot_img_mats(x[:16, :, :])
 elif mode == 3:  # run handwriting generation, then plot the results
