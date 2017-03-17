@@ -3,13 +3,18 @@ from vrnn_train import run_training, run_generation
 from number_series_gen import *
 from params import PARAM_DICT
 from iamondb_reader import mat_to_plot
+from utilities import plot_img_mats
 import numpy as np
 
 mode = 1
 
 if mode == 1:  # run training
     run_training(PARAM_DICT)
-elif mode == 2:  # run generation, then plot the results
+elif mode == 2:  # run mnist generation
+    x = run_generation(PARAM_DICT['log_path'] + 'params.pkl', ckpt_file=PARAM_DICT['log_path'] + 'ckpt-10000')
+    x = np.transpose(x, (1, 0, 2))
+    plot_img_mats(x[:16, :, :])
+elif mode == 3:  # run handwriting generation, then plot the results
     x = run_generation(PARAM_DICT['log_path'] + 'params.pkl', ckpt_file=PARAM_DICT['log_path'] + 'ckpt-4000')
 
     # mask 200 cut
