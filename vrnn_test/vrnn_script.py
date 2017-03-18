@@ -11,7 +11,7 @@ mode = 1
 if mode == 1:  # run training
     run_training(PARAM_DICT)
 elif mode == 2:  # run mnist generation
-    x = run_generation(PARAM_DICT['log_path'] + 'params.pkl', ckpt_file=PARAM_DICT['log_path'] + 'ckpt-9000')
+    x = run_generation(PARAM_DICT['log_path'] + 'params.pkl', ckpt_file=PARAM_DICT['log_path'] + 'ckpt-5000')
     x = np.transpose(x, (1, 0, 2))
     plot_img_mats(x[:16, :, :])
 elif mode == 3:  # run handwriting generation, then plot the results
