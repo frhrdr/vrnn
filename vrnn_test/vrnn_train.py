@@ -245,6 +245,96 @@ def run_generation(params_file, ckpt_file=None, batch=None):
             return x_gen
 
 
+def run_read_then_continue(params_file, read_seq, ckpt_file=None, batch_size=1):
+    # build train model without actual train-op and run on inputs
+    # retrieve last hidden state as well as lstm state
+    # build gen model, init with saved states, run as often as desired
+    # return generated sequences as array
+
+    pd = pickle.load(open(params_file, 'rb'))
+
+    if ckpt_file is None:
+        ckpt_file = pd['log_path'] + '/ckpt-' + str(pd['max_iter'])
+    pd['batch_size'] = batch_size
+    pd['seq_length'] = read_seq.shape[0]
+
+    netgen = NetGen()
+    nets = ['phi_x', 'phi_prior', 'phi_enc', 'phi_z', 'phi_dec', 'f_theta']
+    for net in nets:
+        netgen.add_net(pd[net])
+    multi_input_nets = ['phi_enc', 'phi_dec']
+    for net in multi_input_nets:
+        netgen.weave_inputs(net)
+
+    with tf.Graph().as_default():
+        stop_fun = model.get_train_stop_fun(pd['seq_length'])
+        loop_fun = model.get_train_loop_fun(pd, netgen.fd)
+
+        # x_pl = tf.placeholder(tf.float32, name='x_pl',
+        #                       shape=(pd['seq_length'], pd['batch_size'], pd['x_dim']))
+        x_pl = tf.Variable(read_seq, name='x_pl')
+        eps_z = tf.placeholder(tf.float32, name='eps_z',
+                               shape=(pd['seq_length'], pd['batch_size'], pd['z_dim']))
+        hid_pl = tf.placeholder(tf.float32, shape=(pd['batch_size'], pd['hid_state_size']), name='ht_init')
+        err_acc = tf.Variable(0, dtype=tf.float32, trainable=False, name='err_acc')
+        count = tf.Variable(0, dtype=tf.float32, trainable=False, name='counter')
+        f_state = netgen.fd['f_theta'].zero_state(pd['batch_size'], tf.float32)
+        loop_vars = [x_pl, hid_pl, err_acc, count, f_state, eps_z]
+
+        loop_fun(*loop_vars)
+        tf.get_variable_scope().reuse_variables()
+        loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
+                                 parallel_iterations=1,
+                                 swap_memory=False)
+        h_final = loop_res[1]
+        f_final = loop_res[4]
+
+        feed = {x_pl: read_seq,
+                hid_pl: np.zeros((pd['batch_size'], pd['hid_state_size'])),
+                eps_z: np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['z_dim']))}
+
+        with tf.Session() as sess:
+            saver = tf.train.Saver()
+            saver.restore(sess, ckpt_file)
+            res = sess.run([h_final] + f_final, feed_dict=feed)
+            h = res[0]
+            f = res[1:]
+
+    # now that h and f are retrieved, build and run gen model
+    with tf.Graph().as_default():
+        stop_fun = model.get_gen_stop_fun(pd['seq_length'])
+        loop_fun = model.get_gen_loop_fun(pd, netgen.fd)
+
+        x_pl = tf.zeros([pd['seq_length'], pd['batch_size'], pd['x_dim']], dtype=tf.float32)
+        eps_z = tf.placeholder(tf.float32, shape=(pd['seq_length'], pd['batch_size'], pd['z_dim']),
+                               name='eps_z')
+        eps_x = tf.placeholder(tf.float32, shape=(pd['seq_length'], pd['batch_size'], pd['x_dim']),
+                               name='eps_x')
+        count = tf.Variable(0, dtype=tf.float32, trainable=False, name='counter')  # tf.to_int32(0, name='counter')
+        hid_pl = tf.Variable(h, name='ht_init')
+        f_state = [tf.Variable(k) for k in f]
+        loop_vars = [x_pl, hid_pl, count, f_state, eps_z, eps_x]
+
+        loop_fun(*loop_vars)
+
+        with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+            loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
+                                     parallel_iterations=1,
+                                     swap_memory=False)
+        x_final = loop_res[0]
+
+        feed = {eps_z: np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['z_dim'])),
+                eps_x: np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['x_dim']))}
+
+        with tf.Session() as sess:
+            saver = tf.train.Saver()
+            saver.restore(sess, ckpt_file)
+
+            x_gen = sess.run(x_final, feed_dict=feed)
+
+            return x_gen
+
+
 # SUMMARIES
 # tv = tf.trainable_variables()
 # tv_summary = [tf.reduce_mean(k) for k in tv]
@@ -263,92 +353,3 @@ def run_generation(params_file, ckpt_file=None, batch=None):
 #     g = tf.maximum(g, -10)
 #     g = tf.minimum(g, 10)
 #     tf.summary.histogram('grads/cut10/' + name, g)
-
-# def run_read_then_continue(params_file, read_seq, ckpt_file=None, batch_size=1):  # seems nonsensical
-#     # build train model without actual train-op and run on inputs
-#     # retrieve last hidden state as well as lstm state
-#     # build gen model, init with saved states, run as often as desired
-#     # return generated sequences as array
-#
-#     pd = pickle.load(open(params_file, 'rb'))
-#
-#     if ckpt_file is None:
-#         ckpt_file = pd['log_path'] + '/ckpt-' + str(pd['max_iter'])
-#     pd['batch_size'] = batch_size
-#     pd['seq_length'] = read_seq.shape[0]
-#
-#     netgen = NetGen()
-#     nets = ['phi_x', 'phi_prior', 'phi_enc', 'phi_z', 'phi_dec', 'f_theta']
-#     for net in nets:
-#         netgen.add_net(pd[net])
-#     multi_input_nets = ['phi_enc', 'phi_dec']
-#     for net in multi_input_nets:
-#         netgen.weave_inputs(net)
-#
-#     with tf.Graph().as_default():
-#         stop_fun = model.get_train_stop_fun(pd['seq_length'])
-#         loop_fun = model.get_train_loop_fun(pd, netgen.fd)
-#
-#         # x_pl = tf.placeholder(tf.float32, name='x_pl',
-#         #                       shape=(pd['seq_length'], pd['batch_size'], pd['x_dim']))
-#         x_pl = tf.Variable(read_seq, name='x_pl')
-#         eps_z = tf.placeholder(tf.float32, name='eps_z',
-#                                shape=(pd['seq_length'], pd['batch_size'], pd['z_dim']))
-#         hid_pl = tf.placeholder(tf.float32, shape=(pd['batch_size'], pd['hid_state_size']), name='ht_init')
-#         err_acc = tf.Variable(0, dtype=tf.float32, trainable=False, name='err_acc')
-#         count = tf.Variable(0, dtype=tf.float32, trainable=False, name='counter')
-#         f_state = netgen.fd['f_theta'].zero_state(pd['batch_size'], tf.float32)
-#         loop_vars = [x_pl, hid_pl, err_acc, count, f_state, eps_z]
-#
-#         loop_fun(*loop_vars)
-#         tf.get_variable_scope().reuse_variables()
-#         loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
-#                                  parallel_iterations=1,
-#                                  swap_memory=False)
-#         h_final = loop_res[1]
-#         f_final = loop_res[4]
-#
-#         feed = {x_pl: read_seq,
-#                 hid_pl: np.zeros((pd['batch_size'], pd['hid_state_size'])),
-#                 eps_z: np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['z_dim']))}
-#
-#         with tf.Session() as sess:
-#             saver = tf.train.Saver()
-#             saver.restore(sess, ckpt_file)
-#             res = sess.run([h_final] + f_final, feed_dict=feed)
-#             h = res[0]
-#             f = res[1:]
-#
-#     # now that h and f are retrieved, build and run gen model
-#     with tf.Graph().as_default():
-#         stop_fun = model.get_gen_stop_fun(pd['seq_length'])
-#         loop_fun = model.get_gen_loop_fun(pd, netgen.fd)
-#
-#         x_pl = tf.zeros([pd['seq_length'], pd['batch_size'], pd['x_dim']], dtype=tf.float32)
-#         eps_z = tf.placeholder(tf.float32, shape=(pd['seq_length'], pd['batch_size'], pd['z_dim']),
-#                                name='eps_z')
-#         eps_x = tf.placeholder(tf.float32, shape=(pd['seq_length'], pd['batch_size'], pd['x_dim']),
-#                                name='eps_x')
-#         count = tf.Variable(0, dtype=tf.float32, trainable=False, name='counter')  # tf.to_int32(0, name='counter')
-#         hid_pl = tf.Variable(h, name='ht_init')
-#         f_state = [tf.Variable(k) for k in f]
-#         loop_vars = [x_pl, hid_pl, count, f_state, eps_z, eps_x]
-#
-#         loop_fun(*loop_vars)
-#
-#         with tf.variable_scope(tf.get_variable_scope(), reuse=True):
-#             loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
-#                                      parallel_iterations=1,
-#                                      swap_memory=False)
-#         x_final = loop_res[0]
-#
-#         feed = {eps_z: np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['z_dim'])),
-#                 eps_x: np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['x_dim']))}
-#
-#         with tf.Session() as sess:
-#             saver = tf.train.Saver()
-#             saver.restore(sess, ckpt_file)
-#
-#             x_gen = sess.run(x_final, feed_dict=feed)
-#
-#             return x_gen

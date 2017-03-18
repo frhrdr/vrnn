@@ -224,7 +224,8 @@ def plot_img_mats(mat):
     n = mat.shape[0]
     cols = int(np.ceil(np.sqrt(n)))
     rows = int(np.ceil(n // cols))
-
+    mat = np.maximum(mat, 0.0)
+    mat = np.minimum(mat, 1.0)
     plt.style.use('grayscale')
     fig, ax_list = plt.subplots(ncols=cols, nrows=rows)
     ax_list = ax_list.flatten()
