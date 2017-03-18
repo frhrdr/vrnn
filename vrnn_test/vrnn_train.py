@@ -224,6 +224,7 @@ def run_generation(params_file, ckpt_file=None, batch=None):
         hid_pl = tf.placeholder(tf.float32, shape=(pd['batch_size'], pd['hid_state_size']), name='ht_init')
         count = tf.constant(0, dtype=tf.float32, name='counter')
         f_state = netgen.fd['f_theta'].zero_state(pd['batch_size'], tf.float32)
+        print(f_state)
         loop_vars = [in_pl, hid_pl, count, f_state, eps_z, eps_x]
 
         _ = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
@@ -270,35 +271,35 @@ def run_read_then_continue(params_file, read_seq, ckpt_file=None, batch_size=1):
         stop_fun = model.get_train_stop_fun(pd['seq_length'])
         loop_fun = model.get_train_loop_fun(pd, netgen.fd)
 
-        # x_pl = tf.placeholder(tf.float32, name='x_pl',
-        #                       shape=(pd['seq_length'], pd['batch_size'], pd['x_dim']))
-        x_pl = tf.Variable(read_seq, name='x_pl')
+        in_pl = tf.placeholder(tf.float32, name='x_pl',
+                               shape=(pd['seq_length'], pd['batch_size'], pd['in_dim']))
         eps_z = tf.placeholder(tf.float32, name='eps_z',
                                shape=(pd['seq_length'], pd['batch_size'], pd['z_dim']))
         hid_pl = tf.placeholder(tf.float32, shape=(pd['batch_size'], pd['hid_state_size']), name='ht_init')
-        err_acc = tf.Variable(0, dtype=tf.float32, trainable=False, name='err_acc')
-        count = tf.Variable(0, dtype=tf.float32, trainable=False, name='counter')
+        err_acc = tf.constant(0, dtype=tf.float32, name='err_acc')
+        count = tf.constant(0, dtype=tf.float32, name='counter')
         f_state = netgen.fd['f_theta'].zero_state(pd['batch_size'], tf.float32)
-        loop_vars = [x_pl, hid_pl, err_acc, count, f_state, eps_z]
+        tracked_tensors = get_tracking_placeholders(pd)
+        loop_vars = [in_pl, hid_pl, err_acc, count, f_state, eps_z, tracked_tensors]
 
         loop_fun(*loop_vars)
         tf.get_variable_scope().reuse_variables()
-        loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
-                                 parallel_iterations=1,
-                                 swap_memory=False)
-        h_final = loop_res[1]
+        loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars)
+
+        # h_final = loop_res[1]
         f_final = loop_res[4]
 
-        feed = {x_pl: read_seq,
+        feed = {in_pl: read_seq,
                 hid_pl: np.zeros((pd['batch_size'], pd['hid_state_size'])),
                 eps_z: np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['z_dim']))}
 
         with tf.Session() as sess:
             saver = tf.train.Saver()
             saver.restore(sess, ckpt_file)
-            res = sess.run([h_final] + f_final, feed_dict=feed)
-            h = res[0]
-            f = res[1:]
+            argin = f_final[0]
+            res = sess.run(argin, feed_dict=feed)
+            c = res[0]
+            h = res[1]
 
     # now that h and f are retrieved, build and run gen model
     with tf.Graph().as_default():
@@ -310,17 +311,17 @@ def run_read_then_continue(params_file, read_seq, ckpt_file=None, batch_size=1):
                                name='eps_z')
         eps_x = tf.placeholder(tf.float32, shape=(pd['seq_length'], pd['batch_size'], pd['x_dim']),
                                name='eps_x')
-        count = tf.Variable(0, dtype=tf.float32, trainable=False, name='counter')  # tf.to_int32(0, name='counter')
-        hid_pl = tf.Variable(h, name='ht_init')
-        f_state = [tf.Variable(k) for k in f]
-        loop_vars = [x_pl, hid_pl, count, f_state, eps_z, eps_x]
+        count = tf.constant(0, dtype=tf.float32, name='counter')
+        h_state = tf.constant(h, name='ht_init')
+        c_state = tf.constant(c, name='ct_init')
+        f_state = (tf.contrib.rnn.LSTMStateTuple(c_state, h_state),)
+        loop_vars = [x_pl, h_state, count, f_state, eps_z, eps_x]
 
         loop_fun(*loop_vars)
 
         with tf.variable_scope(tf.get_variable_scope(), reuse=True):
-            loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars,
-                                     parallel_iterations=1,
-                                     swap_memory=False)
+            loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars)
+
         x_final = loop_res[0]
 
         feed = {eps_z: np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['z_dim'])),

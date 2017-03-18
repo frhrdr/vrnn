@@ -4,9 +4,10 @@ from number_series_gen import *
 from params import PARAM_DICT
 from iamondb_reader import mat_to_plot
 from utilities import plot_img_mats
+from tensorflow.examples.tutorials.mnist import input_data
 import numpy as np
 
-mode = 1
+mode = 3
 
 if mode == 1:  # run training
     run_training(PARAM_DICT)
@@ -15,7 +16,19 @@ elif mode == 2:  # run mnist generation
     x = np.transpose(x, (1, 0, 2))
     plot_img_mats(x[:16, :, :])
 elif mode == 3:
-    x = run_read_then_continue(PARAM_DICT, )
+    batch_size = 16
+    cut_after = 14
+    data = input_data.read_data_sets('data/mnist/').train
+    x = np.reshape(data.next_batch(batch_size)[0], (batch_size, 28, 28))
+    x = np.transpose(x, (1, 0, 2))
+    x = x[:cut_after, :, :]
+    y = run_read_then_continue(PARAM_DICT['log_path'] + 'params.pkl',
+                               ckpt_file=PARAM_DICT['log_path'] + 'ckpt-6500',
+                               read_seq=x, batch_size=batch_size)
+    z = np.concatenate([x, y], axis=0)
+    z = np.transpose(z, (1, 0, 2))
+    plot_img_mats(z)
+
 elif mode == 4:  # run handwriting generation, then plot the results
     x = run_generation(PARAM_DICT['log_path'] + 'params.pkl', ckpt_file=PARAM_DICT['log_path'] + 'ckpt-4000')
 
