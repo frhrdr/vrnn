@@ -7,7 +7,7 @@ PARAM_DICT['log_path'] = 'data/logs/mnist_05/'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 200
 PARAM_DICT['valid_freq'] = -1
-PARAM_DICT['load_path'] = 'data/logs/mnist_04/ckpt-6500'
+PARAM_DICT['load_path'] = 'data/logs/mnist_04/ckpt-7000'
 
 PARAM_DICT['model'] = 'gauss_out'  # options: gauss_out, gm_out, soon: gauss_out_bin, gm_out_bin
 PARAM_DICT['modes_out'] = 1
