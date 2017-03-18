@@ -144,7 +144,7 @@ def run_training(pd):
                 saver = tf.train.Saver()
                 saver.restore(sess, pd['load_path'])
 
-            saver = tf.train.Saver()
+            saver = tf.train.Saver(max_to_keep=pd['num_ckpts'])
 
             for it in range(pd['max_iter']):
                 feed = train_dict.next()
