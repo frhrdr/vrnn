@@ -3,7 +3,7 @@ PARAM_DICT = dict()
 # data path
 PARAM_DICT['series'] = -1
 PARAM_DICT['train_data_path'] = 'load_mnist'  # 'data/handwriting/rough_cut_500_pad_500_max_300_norm.npy'
-PARAM_DICT['log_path'] = 'data/logs/mnist_08/'
+PARAM_DICT['log_path'] = 'data/logs/mnist_07/'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 200
 PARAM_DICT['valid_freq'] = -1

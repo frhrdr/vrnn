@@ -7,7 +7,7 @@ from utilities import plot_img_mats
 from tensorflow.examples.tutorials.mnist import input_data
 import numpy as np
 
-mode = 1
+mode = 2
 
 if mode == 1:  # run training
     run_training(PARAM_DICT)
