@@ -297,10 +297,10 @@ def run_read_then_continue(params_file, read_seq, ckpt_file=None, batch_size=1):
         with tf.Session() as sess:
             saver = tf.train.Saver()
             saver.restore(sess, ckpt_file)
-            argin = f_final[0]
+            argin = list(f_final)
             res = sess.run(argin, feed_dict=feed)
-            c = res[0]
-            h = res[1]
+            print(res)
+            h = res[-1][1]
 
     # now that h and f are retrieved, build and run gen model
     with tf.Graph().as_default():
@@ -314,8 +314,7 @@ def run_read_then_continue(params_file, read_seq, ckpt_file=None, batch_size=1):
                                name='eps_x')
         count = tf.constant(0, dtype=tf.float32, name='counter')
         h_state = tf.constant(h, name='ht_init')
-        c_state = tf.constant(c, name='ct_init')
-        f_state = (tf.contrib.rnn.LSTMStateTuple(c_state, h_state),)
+        f_state = tuple([tf.contrib.rnn.LSTMStateTuple(tf.constant(k[0]), tf.constant(k[1])) for k in res])
         loop_vars = [x_pl, h_state, count, f_state, eps_z, eps_x]
 
         loop_fun(*loop_vars)

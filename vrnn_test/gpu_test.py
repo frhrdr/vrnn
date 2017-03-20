@@ -9,4 +9,6 @@ from utilities import plot_img_mats
 # x = np.transpose(x, (1, 0, 2))
 # x = np.transpose(x, (1, 0, 2))
 # plot_img_mats(x[:16, :, :])
-print(list((1, 2, 3)))
+a = np.load('data/logs/mnist_07/params.pkl')
+for key in a:
+    print(key, ': ', a[key])

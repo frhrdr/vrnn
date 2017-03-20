@@ -5,27 +5,23 @@
 - scp rough_cut_200_pad_0_max_300_norm_xyonly.npy fharder@146.50.28.47:~/generative_audio_vrnn/vrnn_test/data/handwriting/
 - scp fharder@146.50.28.47:~/generative_audio_vrnn/vrnn_test/data/logs/handwriting_/checkpoint .
 
-###done:
+### in progress:
+- try and get an actual mixture and binary loss (suspended)
+- optimize mnist performance
 
-- build VAE, run on mnist
-- build VRNN, run on handwriting data
-
-###in progress:
-- try and get an actual mixture and binary loss
-
-###to do:
+### to do:
 - extend to full length data? or stay at 500?
 - consider correlated output dist - naaaa, given how tiny cov gets, this would have near to no effect
 - report
 
-###notes:
+### notes:
 - reconsider gradient clipping
 - contrib training bucket by seq len & tensorarray
 - test single latent dim
 - masking: renormalizing over remaining over unmasked errors might make them overly important
 
 
-###test log:
+### test log:
 - test 08: +-1 clipping led to steady run over 5000 iterations... no idea why.
  spotted some discrepancies in the log p error, which should be investigated further.
 
