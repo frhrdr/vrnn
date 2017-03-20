@@ -3,7 +3,7 @@
 ### cut&paste:
 - ssh -L 16006:127.0.0.1:6006 amlab
 - scp rough_cut_200_pad_0_max_300_norm_xyonly.npy fharder@146.50.28.47:~/generative_audio_vrnn/vrnn_test/data/handwriting/
-- scp fharder@146.50.28.47:~/generative_audio_vrnn/vrnn_test/data/logs/handwriting_/checkpoint .
+- scp fharder@146.50.28.47:~/generative_audio_vrnn/vrnn_test/data/logs/mnist_/checkpoint .
 
 ### in progress:
 - try and get an actual mixture and binary loss (suspended)

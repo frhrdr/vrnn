@@ -184,9 +184,9 @@ def get_gen_batch_dict_generator(hid_pl, eps_z, eps_x, pd):
     while True:
         d[hid_pl] = np.zeros((pd['batch_size'], pd['hid_state_size']))
         d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['z_dim']))
-        d[eps_x] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['x_dim']))
+        # d[eps_x] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['x_dim']))
         # d[eps_z] = np.zeros((pd['seq_length'], pd['batch_size'], pd['z_dim']))
-        # d[eps_x] = np.zeros((pd['seq_length'], pd['batch_size'], pd['x_dim']))
+        d[eps_x] = np.zeros((pd['seq_length'], pd['batch_size'], pd['x_dim']))
         yield d
 
 
@@ -224,7 +224,7 @@ def run_generation(params_file, ckpt_file=None, batch=None):
         hid_pl = tf.placeholder(tf.float32, shape=(pd['batch_size'], pd['hid_state_size']), name='ht_init')
         count = tf.constant(0, dtype=tf.float32, name='counter')
         f_state = netgen.fd['f_theta'].zero_state(pd['batch_size'], tf.float32)
-        print(f_state)
+
         loop_vars = [in_pl, hid_pl, count, f_state, eps_z, eps_x]
 
         _ = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
@@ -299,7 +299,6 @@ def run_read_then_continue(params_file, read_seq, ckpt_file=None, batch_size=1):
             saver.restore(sess, ckpt_file)
             argin = list(f_final)
             res = sess.run(argin, feed_dict=feed)
-            print(res)
             h = res[-1][1]
 
     # now that h and f are retrieved, build and run gen model
