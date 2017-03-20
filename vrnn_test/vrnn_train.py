@@ -184,9 +184,9 @@ def get_gen_batch_dict_generator(hid_pl, eps_z, eps_x, pd):
     while True:
         d[hid_pl] = np.zeros((pd['batch_size'], pd['hid_state_size']))
         d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['z_dim']))
-        # d[eps_x] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['x_dim']))
+        d[eps_x] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['x_dim']))
         # d[eps_z] = np.zeros((pd['seq_length'], pd['batch_size'], pd['z_dim']))
-        d[eps_x] = np.zeros((pd['seq_length'], pd['batch_size'], pd['x_dim']))
+        # d[eps_x] = np.zeros((pd['seq_length'], pd['batch_size'], pd['x_dim']))
         yield d
 
 
