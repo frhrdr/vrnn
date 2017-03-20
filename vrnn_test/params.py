@@ -9,8 +9,8 @@ PARAM_DICT['print_freq'] = 200
 PARAM_DICT['valid_freq'] = -1
 PARAM_DICT['load_path'] = 'data/logs/mnist_07/ckpt-20000'
 PARAM_DICT['num_ckpts'] = 5
-PARAM_DICT['model'] = 'gauss_out'  # options: gauss_out, gm_out, gauss_out_bin, gm_out_bin
-PARAM_DICT['modes_out'] = 1
+PARAM_DICT['model'] = 'gm_out'  # options: gauss_out, gm_out, gauss_out_bin, gm_out_bin
+PARAM_DICT['modes_out'] = 10
 
 # specify global settings
 PARAM_DICT['batch_size'] = 100
