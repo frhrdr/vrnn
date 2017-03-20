@@ -15,7 +15,7 @@ PARAM_DICT['modes_out'] = 1
 # specify global settings
 PARAM_DICT['batch_size'] = 100
 PARAM_DICT['x_dim'] = 28
-PARAM_DICT['z_dim'] = 5
+PARAM_DICT['z_dim'] = 10
 PARAM_DICT['seq_length'] = 28
 PARAM_DICT['learning_rate'] = 0.00003
 PARAM_DICT['max_iter'] = 20000
@@ -87,4 +87,4 @@ PARAM_DICT['phi_dec'] = {'name': 'phi_dec',
 
 PARAM_DICT['f_theta'] = {'name': 'f_theta',
                          'nn_type': 'general_lstm',
-                         'layers': [PARAM_DICT['hid_state_size']]}
+                         'layers': [PARAM_DICT['hid_state_size'], PARAM_DICT['hid_state_size']]}
