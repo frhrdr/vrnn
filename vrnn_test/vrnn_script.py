@@ -1,6 +1,5 @@
 from __future__ import print_function
 from vrnn_train import run_training, run_generation, run_read_then_continue
-from number_series_gen import *
 from params import PARAM_DICT
 from iamondb_reader import mat_to_plot
 from utilities import plot_img_mats
@@ -12,7 +11,7 @@ mode = 1
 if mode == 1:  # run training
     run_training(PARAM_DICT)
 elif mode == 2:  # run mnist generation
-    x = run_generation(PARAM_DICT['log_path'] + 'params.pkl', ckpt_file=PARAM_DICT['log_path'] + 'ckpt-20000')
+    x = run_generation(PARAM_DICT['log_path'] + 'params.pkl', ckpt_file=PARAM_DICT['log_path'] + 'ckpt-9000')
     x = np.transpose(x, (1, 0, 2))
     plot_img_mats(x[:16, :, :])
 elif mode == 3:
@@ -23,7 +22,7 @@ elif mode == 3:
     x = np.transpose(x, (1, 0, 2))
     x = x[:cut_after, :, :]
     y = run_read_then_continue(PARAM_DICT['log_path'] + 'params.pkl',
-                               ckpt_file=PARAM_DICT['log_path'] + 'ckpt-20000',
+                               ckpt_file=PARAM_DICT['log_path'] + 'ckpt-9000',
                                read_seq=x, batch_size=batch_size)
     z = np.concatenate([x, y], axis=0)
     z = np.transpose(z, (1, 0, 2))
