@@ -147,7 +147,7 @@ def run_training(pd):
             saver = tf.train.Saver(max_to_keep=pd['num_ckpts'])
 
             for it in range(pd['max_iter']):
-                feed = train_dict.next()
+                feed = next(train_dict)
 
                 _, err, summary_str = sess.run([train_op, bound_final, summary_op], feed_dict=feed)
 
@@ -161,7 +161,7 @@ def run_training(pd):
                     num_it = int(325 / pd['batch_size'])
                     err_acc = 0.0
                     for v_it in range(num_it):
-                        feed = valid_dict.next()
+                        feed = next(valid_dict)
 
                         _, err, summary_str = sess.run([train_op, bound_final, valid_bound], feed_dict=feed)
                         summary_writer.add_summary(summary_str, it)
@@ -239,7 +239,7 @@ def run_generation(params_file, ckpt_file=None, batch=None):
             saver = tf.train.Saver()
             saver.restore(sess, ckpt_file)
 
-            feed = batch_dict.next()
+            feed = next(batch_dict)
 
             x_gen = sess.run(x_final, feed_dict=feed)
 

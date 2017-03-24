@@ -1,4 +1,3 @@
-from __future__ import print_function
 from vrnn_train import run_training, run_generation, run_read_then_continue
 from params import PARAM_DICT
 from iamondb_reader import mat_to_plot
