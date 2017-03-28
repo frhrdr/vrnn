@@ -116,7 +116,7 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
         num_live_samples = tf.reduce_sum(mask, axis=0)
         log_p = tf.reduce_sum(tf.where(tf.equal(mask, 0.0), mask, log_p), name='log_p_sum') / num_live_samples
         kl_div = tf.reduce_sum(tf.where(tf.equal(mask, 0.0), mask, kl_div), name='kl_div_sum') / num_live_samples
-        bound = kl_div - log_p
+        bound = (param_dict['kl_weight'] * kl_div) - log_p
         if 'bin' in param_dict['model']:
             maybe_ce[0] = tf.where(tf.equal(mask, 0.0), mask, maybe_ce[0])
             maybe_ce[0] = tf.reduce_sum(maybe_ce[0]) / num_live_samples
@@ -129,7 +129,7 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
     else:
         kl_div = tf.reduce_mean(kl_div)
         log_p = tf.reduce_mean(log_p)
-        bound = kl_div - log_p
+        bound = (param_dict['kl_weight'] * kl_div) - log_p
         if 'bin' in param_dict['model']:
             bound += tf.reduce_mean(maybe_ce[0])
 
