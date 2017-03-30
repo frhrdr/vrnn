@@ -5,16 +5,16 @@ from utilities import plot_img_mats
 from tensorflow.examples.tutorials.mnist import input_data
 import numpy as np
 
-mode = 1
+mode = 3
 
 if mode == 1:  # run training
     run_training(PARAM_DICT)
 elif mode == 2:  # run mnist generation
     x = run_generation(PARAM_DICT['log_path'] + 'params.pkl', ckpt_file=PARAM_DICT['log_path'] + 'ckpt-20000')
     x = np.transpose(x, (1, 0, 2))
-    plot_img_mats(x[:16, :, :])
+    plot_img_mats(x[:36, :, :])
 elif mode == 3:
-    batch_size = 16
+    batch_size = 36
     cut_after = 14
     data = input_data.read_data_sets('data/mnist/').train
     x = np.reshape(data.next_batch(batch_size)[0], (batch_size, 28, 28))

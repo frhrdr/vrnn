@@ -3,11 +3,11 @@ PARAM_DICT = dict()
 # data path
 PARAM_DICT['series'] = -1
 PARAM_DICT['train_data_path'] = 'load_mnist'  # 'data/handwriting/rough_cut_500_pad_500_max_300_norm.npy'
-PARAM_DICT['log_path'] = 'data/logs/mnist_14/'
+PARAM_DICT['log_path'] = 'data/logs/mnist_15/'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 500
 PARAM_DICT['valid_freq'] = -1
-PARAM_DICT['load_path'] = 'data/logs/mnist_13/ckpt-20000'
+PARAM_DICT['load_path'] = None  # 'data/logs/mnist_13/ckpt-20000'
 PARAM_DICT['num_ckpts'] = 5
 PARAM_DICT['model'] = 'gauss_out'  # options: gauss_out, gm_out, gauss_out_bin, gm_out_bin
 PARAM_DICT['modes_out'] = 1
@@ -17,12 +17,12 @@ PARAM_DICT['batch_size'] = 100
 PARAM_DICT['x_dim'] = 28
 PARAM_DICT['z_dim'] = 2
 PARAM_DICT['seq_length'] = 28
-PARAM_DICT['learning_rate'] = 0.000001
+PARAM_DICT['learning_rate'] = 0.00001
 PARAM_DICT['max_iter'] = 20000
 PARAM_DICT['hid_state_size'] = 1500
 PARAM_DICT['masking'] = False
 PARAM_DICT['mask_value'] = 500
-PARAM_DICT['kl_weight'] = 0.1
+PARAM_DICT['kl_weight'] = 10.0
 
 # infer some necessary network sizes
 PARAM_DICT['in_dim'] = PARAM_DICT['x_dim']
