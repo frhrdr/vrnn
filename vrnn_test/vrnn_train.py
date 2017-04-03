@@ -166,7 +166,7 @@ def run_training(pd):
                         _, err, summary_str = sess.run([train_op, bound_final, valid_bound], feed_dict=feed)
                         summary_writer.add_summary(summary_str, it)
                         err_acc += err
-                    print('Iteration: ', it + 1, ' Validation Error: ', err_acc)
+                    print('Iteration: ', it + 1, ' Validation Error: ', err_acc / pd['validation_set_size'])
 
                 if (pd['print_freq'] > 0) and (it + 1) % pd['print_freq'] == 0:
 

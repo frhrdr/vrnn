@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+from tensorflow.examples.tutorials.mnist import input_data
 from vrnn_model import gaussian_log_p, get_train_stop_fun, optimization
 from utilities import NetGen
 import os.path
@@ -11,10 +12,10 @@ PARAMS = dict()
 PARAMS['max_iter'] = 20000
 PARAMS['log_path'] = 'data/logs/ref_lstm_01/'
 PARAMS['log_freq'] = 500
-PARAMS['print_freq'] = 50
-PARAMS['valid_freq'] = -1
+PARAMS['print_freq'] = 500
+PARAMS['valid_freq'] = 500
 PARAMS['load_path'] = None  # 'data/logs/mnist_16/ckpt-20000'
-PARAMS['validation_set_size'] = 10000
+PARAMS['validation_set_size'] = 100
 
 PARAMS['model'] = 'gauss_out'  # options: gauss_out, gm_out, gauss_out_bin, gm_out_bin
 PARAMS['modes_out'] = 1
@@ -25,17 +26,17 @@ PARAMS['batch_size'] = 100
 PARAMS['x_dim'] = 28
 PARAMS['seq_length'] = 28
 PARAMS['learning_rate'] = 0.0001
-
+PARAMS['validation_set_size'] = 1000
 
 PARAMS['in_mlp'] = {'name': 'in_mlp',
-                     'nn_type': 'general_mlp',
-                     'activation': 'relu',
-                     'layers': [PARAMS['x_dim'], PARAMS['hid_mlp_dim'], PARAMS['lstm_dim']],
-                     'init_sig_var': 0.01,
-                     'init_sig_bias': 0.0}
+                    'nn_type': 'general_mlp',
+                    'activation': 'relu',
+                    'layers': [PARAMS['x_dim'], PARAMS['hid_mlp_dim'], PARAMS['lstm_dim']],
+                    'init_sig_var': 0.01,
+                    'init_sig_bias': 0.0}
 PARAMS['lstm'] = {'name': 'lstm',
-                         'nn_type': 'general_lstm',
-                         'layers': [PARAMS['lstm_dim'], PARAMS['lstm_dim']]}
+                  'nn_type': 'general_lstm',
+                  'layers': [PARAMS['lstm_dim'], PARAMS['lstm_dim']]}
 PARAMS['out_mlp'] = {'name': 'out_mlp',
                      'nn_type': 'general_mlp',
                      'activation': 'relu',
@@ -69,14 +70,14 @@ def get_lstm_loop_fun(params, fd):
     return lstm_loop_fun
 
 
-def get_sequential_mnist_batch_dict_generator(in_pl, hid_pl, eps_z, pd, data_dir='data/mnist/', stage='train'):
+def get_sequential_mnist_batch_dict_generator(in_pl, params, data_dir='data/mnist/', stage='train'):
     if stage == 'train':
         data = input_data.read_data_sets(data_dir).train
     else:
         data = input_data.read_data_sets(data_dir).validation
     d = {}
     while True:
-        x = np.reshape(data.next_batch(pd['batch_size'])[0], (pd['batch_size'], 28, 28))
+        x = np.reshape(data.next_batch(params['batch_size'])[0], (params['batch_size'], 28, 28))
         d[in_pl] = np.transpose(x, (1, 0, 2))
         yield d
 
@@ -111,8 +112,8 @@ def lstm_train(params):
 
         train_op = optimization(bound_final, params['learning_rate'])
 
-        train_dict = get_sequential_mnist_batch_dict_generator(in_pl, 'hid_pl', 'eps', params, stage='train')
-        valid_dict = get_sequential_mnist_batch_dict_generator(in_pl, 'hid_pl', 'eps', params, stage='validation')
+        train_dict = get_sequential_mnist_batch_dict_generator(in_pl, params, stage='train')
+        valid_dict = get_sequential_mnist_batch_dict_generator(in_pl, params, stage='validation')
 
         tf.summary.scalar('bound', bound_final)
         summary_op = tf.summary.merge_all()
@@ -143,7 +144,7 @@ def lstm_train(params):
                     summary_writer.flush()
 
                 if (params['valid_freq'] > 0) and (it + 1) % params['valid_freq'] == 0:
-                    num_it = int(10000 / params['batch_size'])
+                    num_it = int(params['validation_set_size'] / params['batch_size'])
                     err_acc = 0.0
                     for v_it in range(num_it):
                         feed = next(valid_dict)
@@ -151,7 +152,7 @@ def lstm_train(params):
                         _, err, summary_str = sess.run([train_op, bound_final, valid_bound], feed_dict=feed)
                         summary_writer.add_summary(summary_str, it)
                         err_acc += err
-                    print('Iteration: ', it + 1, ' Validation Error: ', err_acc)
+                    print('Iteration: ', it + 1, ' Validation Error: ', err_acc / params['validation_set_size'])
 
                 if (params['print_freq'] > 0) and (it + 1) % params['print_freq'] == 0:
 
