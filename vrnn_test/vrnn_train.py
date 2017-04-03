@@ -158,7 +158,7 @@ def run_training(pd):
 
                 if (pd['valid_freq'] > 0) and (it + 1) % pd['valid_freq'] == 0:
                     valid_dict = get_train_batch_dict_generator(valid_data, in_pl, hid_pl, eps_z, pd)
-                    num_it = int(325 / pd['batch_size'])
+                    num_it = int(pd['validation_set_size'] / pd['batch_size'])
                     err_acc = 0.0
                     for v_it in range(num_it):
                         feed = next(valid_dict)
