@@ -3,11 +3,11 @@ PARAM_DICT = dict()
 # data path
 PARAM_DICT['series'] = -1
 PARAM_DICT['train_data_path'] = 'load_mnist'  # 'data/handwriting/rough_cut_500_pad_500_max_300_norm.npy'
-PARAM_DICT['log_path'] = 'data/logs/mnist_22/'
+PARAM_DICT['log_path'] = 'data/logs/mnist_23/'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 500
 PARAM_DICT['valid_freq'] = -1
-PARAM_DICT['load_path'] = 'data/logs/mnist_21/ckpt-20000'
+PARAM_DICT['load_path'] = 'data/logs/mnist_22/ckpt-20000'
 PARAM_DICT['num_ckpts'] = 5
 PARAM_DICT['validation_set_size'] = 10000
 
@@ -18,7 +18,7 @@ PARAM_DICT['batch_size'] = 100
 PARAM_DICT['x_dim'] = 28
 PARAM_DICT['z_dim'] = 2
 PARAM_DICT['seq_length'] = 28
-PARAM_DICT['learning_rate'] = 0.00003
+PARAM_DICT['learning_rate'] = 0.000003
 PARAM_DICT['max_iter'] = 20000
 PARAM_DICT['hid_state_size'] = 1500
 PARAM_DICT['masking'] = False
