@@ -15,7 +15,7 @@ PARAMS['log_freq'] = 500
 PARAMS['print_freq'] = 500
 PARAMS['valid_freq'] = 500
 PARAMS['load_path'] = None  # 'data/logs/mnist_16/ckpt-20000'
-PARAMS['validation_set_size'] = 100
+PARAMS['validation_set_size'] = 10000
 
 PARAMS['model'] = 'gauss_out'  # options: gauss_out, gm_out, gauss_out_bin, gm_out_bin
 PARAMS['modes_out'] = 1
