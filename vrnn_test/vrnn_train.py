@@ -166,13 +166,14 @@ def run_training(pd):
                         _, err, summary_str = sess.run([train_op, bound_final, valid_bound], feed_dict=feed)
                         summary_writer.add_summary(summary_str, it)
                         err_acc += err
-                    print('Iteration: ', it + 1, ' Validation Error: ', err_acc / pd['validation_set_size'])
+                    print('Iteration: ' + str(it + 1) +
+                          ' Validation Error: ' + str(err_acc / pd['validation_set_size']))
 
                 if (pd['print_freq'] > 0) and (it + 1) % pd['print_freq'] == 0:
 
-                    print('iteration ' + str(it + 1) +
-                          ' error: ' + str(err) +
-                          ' time: ' + str(time.time() - start_time))
+                    print('Iteration: ' + str(it + 1) +
+                          ' Train Error: ' + str(err) +
+                          ' Time: ' + str(time.time() - start_time))
 
                 if (it + 1) % pd['log_freq'] == 0 or (it + 1) == pd['max_iter']:
                     checkpoint_file = os.path.join(pd['log_path'], 'ckpt')
