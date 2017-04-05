@@ -110,7 +110,7 @@ def run_training(pd):
 
         if pd['train_data_path'] == 'load_mnist':
             train_dict = get_sequential_mnist_batch_dict_generator(in_pl, hid_pl, eps_z, pd, stage='train')
-            valid_data = get_sequential_mnist_batch_dict_generator(in_pl, hid_pl, eps_z, pd, stage='validation')
+            valid_dict = get_sequential_mnist_batch_dict_generator(in_pl, hid_pl, eps_z, pd, stage='validation')
         else:
             train_data = np.load(pd['train_data_path'])
             valid_data = np.load(pd['valid_data_path'])
@@ -157,7 +157,6 @@ def run_training(pd):
                     summary_writer.flush()
 
                 if (pd['valid_freq'] > 0) and (it + 1) % pd['valid_freq'] == 0:
-                    valid_dict = get_train_batch_dict_generator(valid_data, in_pl, hid_pl, eps_z, pd)
                     num_it = int(pd['validation_set_size'] / pd['batch_size'])
                     err_acc = 0.0
                     for v_it in range(num_it):
