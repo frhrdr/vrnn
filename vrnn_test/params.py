@@ -3,11 +3,11 @@ PARAM_DICT = dict()
 # data path
 PARAM_DICT['series'] = -1
 PARAM_DICT['train_data_path'] = 'load_mnist'  # 'data/handwriting/rough_cut_500_pad_500_max_300_norm.npy'
-PARAM_DICT['log_path'] = 'data/logs/mnist_23/'
+PARAM_DICT['log_path'] = 'data/logs/mnist_24/'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 500
-PARAM_DICT['valid_freq'] = -1
-PARAM_DICT['load_path'] = 'data/logs/mnist_22/ckpt-20000'
+PARAM_DICT['valid_freq'] = 500
+PARAM_DICT['load_path'] = 'data/logs/mnist_19/ckpt-20000'
 PARAM_DICT['num_ckpts'] = 5
 PARAM_DICT['validation_set_size'] = 10000
 
@@ -23,7 +23,7 @@ PARAM_DICT['max_iter'] = 20000
 PARAM_DICT['hid_state_size'] = 1500
 PARAM_DICT['masking'] = False
 PARAM_DICT['mask_value'] = 500
-PARAM_DICT['kl_weight'] = 0.1
+PARAM_DICT['kl_weight'] = 1.0
 
 # infer some necessary network sizes
 PARAM_DICT['in_dim'] = PARAM_DICT['x_dim']

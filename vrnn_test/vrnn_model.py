@@ -15,7 +15,7 @@ def sample(params, eps, dist='gauss'):
         choices = tf.multinomial(pi_logits, num_samples=1)
         batch_size = choices.get_shape()[0]
         modes = pi_logits.get_shape()[1]
-        ids = tf.constant(range(batch_size), dtype=tf.int64, shape=(batch_size, 1))
+        ids = tf.constant(list(range(batch_size)), dtype=tf.int64, shape=(batch_size, 1))
         idx_tensor = tf.concat([ids, choices], axis=1)
         chosen_means = tf.gather_nd(means, idx_tensor)
         chosen_covs = tf.gather_nd(covs, idx_tensor)

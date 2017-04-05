@@ -10,7 +10,7 @@ import numpy as np
 # x = np.transpose(x, (1, 0, 2))
 # plot_img_mats(x[:16, :, :])
 
-a = np.load('data/logs/mnist_11/params.pkl')
+a = np.load('data/logs/handwriting_54/params.pkl')
 for key in a:
     print(key, ': ', a[key])
 

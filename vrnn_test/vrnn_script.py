@@ -28,7 +28,7 @@ elif mode == 3:
     plot_img_mats(z)
 
 elif mode == 4:  # run handwriting generation, then plot the results
-    x = run_generation(PARAM_DICT['log_path'] + 'params.pkl', ckpt_file=PARAM_DICT['log_path'] + 'ckpt-20000')
+    x = run_generation(PARAM_DICT['log_path'] + 'params.pkl', ckpt_file=PARAM_DICT['log_path'] + 'ckpt-8000')
 
     # mask 200 cut
     # [ 7.65791469  0.54339499  0.03887757]
