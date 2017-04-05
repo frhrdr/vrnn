@@ -23,7 +23,7 @@ PARAM_DICT['seq_length'] = 500
 PARAM_DICT['learning_rate'] = 0.00003
 PARAM_DICT['max_iter'] = 20000
 PARAM_DICT['hid_state_size'] = 1500
-PARAM_DICT['masking'] = False
+PARAM_DICT['masking'] = True
 PARAM_DICT['mask_value'] = 500
 PARAM_DICT['kl_weight'] = 1.0
 
