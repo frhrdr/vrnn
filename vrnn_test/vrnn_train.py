@@ -115,6 +115,7 @@ def run_training(pd):
             train_data = np.load(pd['train_data_path'])
             valid_data = np.load(pd['valid_data_path'])
             train_dict = get_train_batch_dict_generator(train_data, in_pl, hid_pl, eps_z, pd)
+            valid_dict = get_train_batch_dict_generator(valid_data, in_pl, hid_pl, eps_z, pd)
 
         tf.summary.scalar('bound', bound_final)
         loss_names = ['kldiv', 'log_p', 'norm', 'exp', 'x_diff', 'bin_ce']
