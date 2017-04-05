@@ -110,7 +110,7 @@ def run_training(pd):
 
         if pd['train_data_path'] == 'load_mnist':
             train_dict = get_sequential_mnist_batch_dict_generator(in_pl, hid_pl, eps_z, pd, stage='train')
-            valid_data = None
+            valid_data = get_sequential_mnist_batch_dict_generator(in_pl, hid_pl, eps_z, pd, stage='validation')
         else:
             train_data = np.load(pd['train_data_path'])
             valid_data = np.load(pd['valid_data_path'])
