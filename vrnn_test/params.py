@@ -11,7 +11,7 @@ PARAM_DICT['valid_freq'] = -1
 PARAM_DICT['load_path'] = None  # 'data/logs/handwriting_54/ckpt-8000'
 PARAM_DICT['num_ckpts'] = 5
 PARAM_DICT['validation_set_size'] = 10000
-# PARAM_DICT['valid_data_path'] = 'data/handwriting/rough_cut_500_pad_500_max_300_norm.npy'
+PARAM_DICT['valid_data_path'] = 'data/handwriting/rough_cut_500_pad_500_max_300_norm.npy'
 
 # specify global settings
 PARAM_DICT['model'] = 'gauss_out_bin'  # options: gauss_out, gm_out, gauss_out_bin, gm_out_bin
