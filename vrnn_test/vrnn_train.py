@@ -256,10 +256,15 @@ def run_read_then_continue(params_file, read_seq, ckpt_file=None, batch_size=1):
 
     pd = pickle.load(open(params_file, 'rb'))
 
+    if 'kl_weight' not in pd.keys():  # backwards compatibility
+        pd['kl_weight'] = 1.0
+
     if ckpt_file is None:
         ckpt_file = pd['log_path'] + '/ckpt-' + str(pd['max_iter'])
     pd['batch_size'] = batch_size
+    seq_length = pd['seq_length']
     pd['seq_length'] = read_seq.shape[0]
+
 
     netgen = NetGen()
     nets = ['phi_x', 'phi_prior', 'phi_enc', 'phi_z', 'phi_dec', 'f_theta']
@@ -303,6 +308,7 @@ def run_read_then_continue(params_file, read_seq, ckpt_file=None, batch_size=1):
             h = res[-1][1]
 
     # now that h and f are retrieved, build and run gen model
+    pd['seq_length'] = seq_length - read_seq.shape[0]
     with tf.Graph().as_default():
         stop_fun = model.get_gen_stop_fun(pd['seq_length'])
         loop_fun = model.get_gen_loop_fun(pd, netgen.fd)

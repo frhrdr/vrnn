@@ -2,19 +2,19 @@ PARAM_DICT = dict()
 
 # data path
 PARAM_DICT['series'] = -1
-PARAM_DICT['train_data_path'] = 'data/handwriting/rough_cut_500_pad_500_max_300_norm.npy'
-# PARAM_DICT['train_data_path'] =  'load_mnist'
-PARAM_DICT['log_path'] = 'data/logs/handwriting_57/'
+# PARAM_DICT['train_data_path'] = 'data/handwriting/rough_cut_500_pad_500_max_300_norm.npy'
+PARAM_DICT['train_data_path'] = 'load_mnist'
+PARAM_DICT['log_path'] = 'data/logs/mnist_25/'
 PARAM_DICT['log_freq'] = 500
 PARAM_DICT['print_freq'] = 500
-PARAM_DICT['valid_freq'] = -1
-PARAM_DICT['load_path'] = 'data/logs/handwriting_56/ckpt-1000'
+PARAM_DICT['valid_freq'] = 50
+PARAM_DICT['load_path'] = 'data/logs/mnist_19/ckpt-20000'
 PARAM_DICT['num_ckpts'] = 5
 PARAM_DICT['validation_set_size'] = 10000
 PARAM_DICT['valid_data_path'] = 'data/handwriting/rough_cut_500_pad_500_max_300_norm.npy'
 
 # specify global settings
-PARAM_DICT['model'] = 'gauss_out_bin'  # options: gauss_out, gm_out, gauss_out_bin, gm_out_bin
+PARAM_DICT['model'] = 'gauss_out'  # options: gauss_out, gm_out, gauss_out_bin, gm_out_bin
 PARAM_DICT['modes_out'] = 1
 PARAM_DICT['batch_size'] = 100
 PARAM_DICT['x_dim'] = 2
@@ -92,3 +92,18 @@ PARAM_DICT['phi_dec'] = {'name': 'phi_dec',
 PARAM_DICT['f_theta'] = {'name': 'f_theta',
                          'nn_type': 'general_lstm',
                          'layers': [PARAM_DICT['hid_state_size'], PARAM_DICT['hid_state_size']]}
+
+
+# compute num of params
+num_params = 0
+nets = [PARAM_DICT[k] for k in ['phi_x', 'phi_prior', 'phi_enc', 'phi_z', 'phi_dec', 'f_theta']]
+for net in nets:
+    l = net['layers']
+    for idx in range(1, len(l)):
+        num_params += (l[idx-1] + 1) * l[idx]
+    if 'out2dist' in net.keys():
+        # assume all gauss
+        d = net['dist_dim']
+        num_params += 2 * (l[-1] + 1) * d
+
+print('Architecure with about ' + str(num_params) + ' parameters')

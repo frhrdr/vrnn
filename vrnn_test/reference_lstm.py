@@ -20,7 +20,7 @@ PARAMS['validation_set_size'] = 10000
 PARAMS['model'] = 'gauss_out'  # options: gauss_out, gm_out, gauss_out_bin, gm_out_bin
 PARAMS['modes_out'] = 1
 PARAMS['x_dim'] = 28
-PARAMS['lstm_dim'] = 2000
+PARAMS['lstm_dim'] = 1600
 PARAMS['hid_mlp_dim'] = 500
 PARAMS['batch_size'] = 100
 PARAMS['x_dim'] = 28
@@ -45,6 +45,23 @@ PARAMS['out_mlp'] = {'name': 'out_mlp',
                      'init_sig_var': 0.01,
                      'init_sig_bias': 0.0,
                      'dist_dim': PARAMS['x_dim']}
+
+
+# compute num of params
+num_params = 0
+nets = [PARAMS[k] for k in ['in_mlp', 'lstm', 'out_mlp']]
+for net in nets:
+    l = net['layers']
+    for idx in range(1, len(l)):
+        num_params += (l[idx-1] + 1) * l[idx]
+    if 'out2dist' in net.keys():
+        # assume all gauss
+        d = net['dist_dim']
+        num_params += 2 * (l[-1] + 1) * d
+
+print('Architecure with about ' + str(num_params) + ' parameters')
+
+raise NotImplementedError
 
 
 def lstm_inference(x_pl, state, fd):
