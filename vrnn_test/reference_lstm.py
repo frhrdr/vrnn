@@ -10,11 +10,11 @@ import pickle
 PARAMS = dict()
 
 PARAMS['max_iter'] = 20000
-PARAMS['log_path'] = 'data/logs/ref_lstm_02/'
+PARAMS['log_path'] = 'data/logs/ref_lstm_03/'
 PARAMS['log_freq'] = 500
 PARAMS['print_freq'] = 500
 PARAMS['valid_freq'] = 500
-PARAMS['load_path'] = 'data/logs/ref_lstm_01/ckpt-20000'
+PARAMS['load_path'] = 'data/logs/ref_lstm_02/ckpt-7000'
 PARAMS['validation_set_size'] = 10000
 
 PARAMS['model'] = 'gauss_out'  # options: gauss_out, gm_out, gauss_out_bin, gm_out_bin
@@ -25,7 +25,7 @@ PARAMS['hid_mlp_dim'] = 500
 PARAMS['batch_size'] = 100
 PARAMS['x_dim'] = 28
 PARAMS['seq_length'] = 28
-PARAMS['learning_rate'] = 0.00003
+PARAMS['learning_rate'] = 0.000003
 PARAMS['validation_set_size'] = 1000
 
 PARAMS['in_mlp'] = {'name': 'in_mlp',
@@ -61,7 +61,6 @@ for net in nets:
 
 print('Architecure with about ' + str(num_params) + ' parameters')
 
-raise NotImplementedError
 
 
 def lstm_inference(x_pl, state, fd):
