@@ -5,7 +5,7 @@ from utilities import plot_img_mats
 from tensorflow.examples.tutorials.mnist import input_data
 import numpy as np
 
-mode = 1
+mode = 3
 
 if mode == 1:  # run training
     run_training(PARAM_DICT)
@@ -16,7 +16,7 @@ elif mode == 2:  # run mnist generation
 elif mode == 3:
     batch_size = 36
     cut_after = 7
-    data = input_data.read_data_sets('data/mnist/').train
+    data = input_data.read_data_sets('data/mnist/').validation
     x = np.reshape(data.next_batch(batch_size)[0], (batch_size, 28, 28))
     x = np.transpose(x, (1, 0, 2))
     x = x[:cut_after, :, :]
