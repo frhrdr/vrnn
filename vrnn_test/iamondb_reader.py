@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 
 def xml_to_mat(xml_path, interpolate=False, max_dist=300):
-
+    """ read data from an xml file, turn into numpy array of relative steps, cut to max step size """
     if interpolate:
         raise NotImplementedError
 
@@ -36,7 +36,7 @@ def xml_to_mat(xml_path, interpolate=False, max_dist=300):
 
 
 def mat_to_plot(mat, meanx=0., meany=0., stdx=1., stdy=1.):
-
+    """ takes preprocessed sequence, renormalizes and re-computes absolute from relative positions. plots result """
     # add third row if missing
     if mat.shape[1] == 2:
         mat = np.concatenate([mat, np.zeros((mat.shape[0], 1))], axis=1)
@@ -65,6 +65,7 @@ def mat_to_plot(mat, meanx=0., meany=0., stdx=1., stdy=1.):
 
 def parse_data_set(target_dir, root_dir='data/handwriting/xml_data_root/lineStrokes/',
                    testset_spec='data/handwriting/testsetspecs.txt'):
+    """ load train an test xml files, accumulate into data mats, storing sequence lengths separately """
     if testset_spec is not None:
         with open(testset_spec) as f:
             test_dirs = [k.rstrip() for k in f.readlines()]
@@ -120,6 +121,7 @@ def parse_data_set(target_dir, root_dir='data/handwriting/xml_data_root/lineStro
 
 
 def load_sequences(source_dir, seq_file='sequences.npy', idx_file='sequence_indices.npy'):
+    """ load data mat and length max, add lengths up to get indices """
     seq_mat = np.load(source_dir + '/' + seq_file)
     idx_mat = np.load(source_dir + '/' + idx_file)
     # plt.hist(idx_mat, 50, normed=1, facecolor='green', alpha=0.75)
@@ -132,7 +134,7 @@ def load_sequences(source_dir, seq_file='sequences.npy', idx_file='sequence_indi
 
 def load_and_cut_sequences(source_dir, seq_file='sequences.npy', idx_file='sequence_indices.npy', cut_len=500,
                            normalize=True, mask=True, mask_value=500):
-
+    """ loads sequences, cuts to certain lenght. optionally normalizing and masking them """
     if not mask:
         mask_value = 0
 
@@ -186,6 +188,7 @@ def load_and_cut_sequences(source_dir, seq_file='sequences.npy', idx_file='seque
 
 
 def no_values_check(val):
+    """ sanity check to make sure for no entry in the data x = y = val (so val is a valid masking constant)"""
     seq, idx = load_sequences('data/handwriting')
     seq = seq[:, :2]
     seq = (seq == val)
@@ -195,6 +198,7 @@ def no_values_check(val):
 
 
 def get_list_of_seqs(source_dir, seq_file='sequences.npy', idx_file='sequence_indices.npy', normalize=True):
+    """ load sequences as list (now unused) """
     seq_mat, idx_mat = load_sequences(source_dir, seq_file, idx_file)
     seq_mat = seq_mat.astype(float)
     if normalize:
@@ -207,8 +211,6 @@ def get_list_of_seqs(source_dir, seq_file='sequences.npy', idx_file='sequence_in
 
 # no_values_check(500)
 
-# a01-000u-01
-# a = xml_to_mat('data/handwriting/strokesu.xml')
 # mat_to_plot(a)
 # parse_data_set('data/handwriting')
 # print(load_and_cut_sequences('data/handwriting').shape)

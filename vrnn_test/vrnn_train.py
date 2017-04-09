@@ -11,6 +11,10 @@ from utilities import NetGen
 
 
 def get_sequential_mnist_batch_dict_generator(in_pl, hid_pl, eps_z, pd, data_dir='data/mnist/', stage='train'):
+    """ 
+    generator loads tensorflow's version of the mnist data set 
+    and fills placeholders with data/noise/zeros for training 
+    """
     if stage == 'train':
         data = input_data.read_data_sets(data_dir).train
     else:
@@ -25,6 +29,10 @@ def get_sequential_mnist_batch_dict_generator(in_pl, hid_pl, eps_z, pd, data_dir
 
 
 def get_train_batch_dict_generator(data, in_pl, hid_pl, eps_z, pd):
+    """ 
+    generator loads arbitrary data stored as (time_steps, samples, features) matrix
+    and fills placeholders with data/noise/zeros for training 
+    """
     end_idx = 0
     d = {}
     while True:
@@ -44,6 +52,10 @@ def get_train_batch_dict_generator(data, in_pl, hid_pl, eps_z, pd):
 
 
 def get_tracking_placeholders(pd):
+    """ 
+    creates placeholders for tracked partial losses and distribution parameters so the can be added to summaries
+    outside of the while loop (parts of this have been removed below to speed up training)
+    """
     sub_losses = [tf.constant(0, dtype=tf.float32, name='kldiv_acc'),
                   tf.constant(0, dtype=tf.float32, name='log_p_acc'),
                   tf.constant(0, dtype=tf.float32, name='norm_acc'),
@@ -69,6 +81,11 @@ def get_tracking_placeholders(pd):
 
 
 def run_training(pd):
+    """
+    creates model, initializes/loads weights, runs training, storing checkpoints and summaries. 
+    prints mean validation error (averaging in the tensorboard summaries doesn't quite work)
+    """
+
     # make log directory and store param_dict
     if not os.path.exists(pd['log_path']):
         os.makedirs(pd['log_path'])
@@ -181,18 +198,19 @@ def run_training(pd):
 
 
 def get_gen_batch_dict_generator(hid_pl, eps_z, eps_x, pd):
+    """ generator fills placeholders with noise/zeros for generation """
     d = {}
     while True:
         d[hid_pl] = np.zeros((pd['batch_size'], pd['hid_state_size']))
         d[eps_z] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['z_dim']))
         d[eps_x] = np.random.normal(size=(pd['seq_length'], pd['batch_size'], pd['x_dim']))
-        # d[eps_z] = np.zeros((pd['seq_length'], pd['batch_size'], pd['z_dim']))
-        # d[eps_x] = np.zeros((pd['seq_length'], pd['batch_size'], pd['x_dim']))
         yield d
 
 
 def run_generation(params_file, ckpt_file=None, batch=None):
-
+    """
+    creates model, loads weights, runs generation for a single batch, returns results for that batch
+    """
     pd = pickle.load(open(params_file, 'rb'))
 
     if ckpt_file is None:  # set default checkpoint file
@@ -248,15 +266,15 @@ def run_generation(params_file, ckpt_file=None, batch=None):
 
 
 def run_read_then_continue(params_file, read_seq, ckpt_file=None, batch_size=1):
-    # build train model without actual train-op and run on inputs
-    # retrieve last hidden state as well as lstm state
-    # build gen model, init with saved states, run as often as desired
-    # return generated sequences as array
-    # only works with single lstm layer at this point
-
+    """
+    build train model without actual train-op and run on inputs
+    retrieve last lstm state
+    build gen model, init with saved state, 
+    run a batch and return it as array
+    """
     pd = pickle.load(open(params_file, 'rb'))
 
-    if 'kl_weight' not in pd.keys():  # backwards compatibility
+    if 'kl_weight' not in pd.keys():  # for backwards compatibility
         pd['kl_weight'] = 1.0
 
     if ckpt_file is None:
@@ -264,7 +282,6 @@ def run_read_then_continue(params_file, read_seq, ckpt_file=None, batch_size=1):
     pd['batch_size'] = batch_size
     seq_length = pd['seq_length']
     pd['seq_length'] = read_seq.shape[0]
-
 
     netgen = NetGen()
     nets = ['phi_x', 'phi_prior', 'phi_enc', 'phi_z', 'phi_dec', 'f_theta']
@@ -340,23 +357,3 @@ def run_read_then_continue(params_file, read_seq, ckpt_file=None, batch_size=1):
             x_gen = sess.run(x_final, feed_dict=feed)
 
             return x_gen
-
-
-# SUMMARIES
-# tv = tf.trainable_variables()
-# tv_summary = [tf.reduce_mean(k) for k in tv]
-# tv_print = tf.Print(bound_final, tv_summary, message='tv ')
-
-# for v in tv:
-#     tf.summary.histogram('vars/' + v.name, v)
-#
-# grads = [g for g in tf.gradients(bound_final, tv) if g is not None]
-# for g in grads:
-#     name = g.name
-#     tf.summary.histogram('grads/raw/' + name, g)
-#     g = tf.maximum(g, -1000)
-#     g = tf.minimum(g, 1000)
-#     tf.summary.histogram('grads/cut1k/' + name, g)
-#     g = tf.maximum(g, -10)
-#     g = tf.minimum(g, 10)
-#     tf.summary.histogram('grads/cut10/' + name, g)

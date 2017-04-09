@@ -3,10 +3,10 @@ import numpy as np
 
 
 def sample(params, eps, dist='gauss'):
+    """ utility function for sampling from distributions, given noise """
     if 'bin' in dist:
         logits = params[-1]
         params = params[:-1]
-
     if 'gauss' in dist:
         mean, cov = params
         s = mean + tf.sqrt(cov) * eps
@@ -14,15 +14,16 @@ def sample(params, eps, dist='gauss'):
         means, covs, pi_logits = params
         choices = tf.multinomial(pi_logits, num_samples=1)
         batch_size = choices.get_shape()[0]
-        modes = pi_logits.get_shape()[1]
         ids = tf.constant(list(range(batch_size)), dtype=tf.int64, shape=(batch_size, 1))
         idx_tensor = tf.concat([ids, choices], axis=1)
         chosen_means = tf.gather_nd(means, idx_tensor)
         chosen_covs = tf.gather_nd(covs, idx_tensor)
         s = chosen_means + tf.sqrt(chosen_covs) * eps
 
-        hist = tf.histogram_fixed_width(tf.to_float(choices), value_range=[0.0, tf.to_float(modes)], nbins=modes)
-        s = tf.Print(s, [tf.reduce_mean(pi_logits, axis=[0]), hist], message='pi logits & picks: ', summarize=modes)
+        # DEBUG HISTOGRAM TO TRACK GM CHOICES
+        # modes = pi_logits.get_shape()[1]
+        # hist = tf.histogram_fixed_width(tf.to_float(choices), value_range=[0.0, tf.to_float(modes)], nbins=modes)
+        # s = tf.Print(s, [tf.reduce_mean(pi_logits, axis=[0]), hist], message='pi logits & picks: ', summarize=modes)
     else:
         raise NotImplementedError
 
@@ -33,6 +34,7 @@ def sample(params, eps, dist='gauss'):
 
 
 def inference(in_pl, hid_pl, f_state, eps_z, fd):
+    """ builds inference model for one time step """
     phi_x = fd['phi_x'](in_pl)
     mean_0, cov_0 = fd['phi_prior'](hid_pl)
     mean_z, cov_z = fd['phi_enc'](phi_x, hid_pl)
@@ -45,8 +47,8 @@ def inference(in_pl, hid_pl, f_state, eps_z, fd):
 
 
 def gaussian_log_p(params_out, x_target, dim):
+    """ computes log probability of target in Gaussian with given parameters """
     mean_x, cov_x = params_out
-
     x_diff = x_target - mean_x
     x_square = tf.reduce_sum((x_diff / cov_x) * x_diff, axis=[1])
     log_x_exp = -0.5 * x_square
@@ -57,6 +59,7 @@ def gaussian_log_p(params_out, x_target, dim):
 
 
 def gm_log_p(params_out, x_target, dim):
+    """ computes log probability of target in Gaussian mixture with given parameters """
     mean_x, cov_x, pi_x_logit = params_out
     pi_x = tf.nn.softmax(pi_x_logit)
     mean_x = tf.transpose(mean_x, perm=[1, 0, 2])
@@ -73,6 +76,7 @@ def gm_log_p(params_out, x_target, dim):
 
 
 def gaussian_kl_div(mean_0, cov_0, mean_1, cov_1, dim):
+    """ computes KL divergences between two Gaussians with given parameters"""
     mean_diff = mean_1 - mean_0
     cov_1_inv = tf.reciprocal(cov_1)
     log_cov_1_det = tf.reduce_sum(tf.log(cov_1), axis=[1])
@@ -85,11 +89,16 @@ def gaussian_kl_div(mean_0, cov_0, mean_1, cov_1, dim):
 
 
 def ce_loss(logits_out, bin_target):
+    """ computes binary cross entropy loss given logit estimate and target"""
     l = tf.nn.sigmoid_cross_entropy_with_logits(logits=logits_out, labels=bin_target, name='ce_loss')
     return tf.squeeze(l)
 
 
 def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
+    """ 
+    computes variational upper bound, depending on output distribution and optionally adds binary CE loss 
+    employs masking, if enabled. also returns partial losses in most setups (inaccurate with masking)
+    """
     maybe_ce = []
 
     kl_div = gaussian_kl_div(mean_z, cov_z, mean_0, cov_0, param_dict['z_dim'])
@@ -142,6 +151,9 @@ def loss(x_target, mean_0, cov_0, mean_z, cov_z, params_out, param_dict):
 
 
 def optimization(err_acc, learning_rate):
+    """
+    creates train operation using ADAM and gradient clipping
+    """
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     tvars = tf.trainable_variables()
     grads = tf.gradients(err_acc, tvars)
@@ -151,6 +163,9 @@ def optimization(err_acc, learning_rate):
 
 
 def train_loop(x_pl, f_theta, bound_acc, count, f_state, eps_z, param_dict, fun_dict, tracked_tensors):
+    """
+    executes one timestep of inference and accumulates loss (and partial losses) passes results for next timestep
+    """
     x_t = tf.squeeze(tf.slice(x_pl, [tf.to_int32(count), 0, 0], [1, -1, -1]), axis=[0])
     eps_z_t = tf.squeeze(tf.slice(eps_z, [tf.to_int32(count), 0, 0], [1, -1, -1]), axis=[0])
 
@@ -170,13 +185,14 @@ def train_loop(x_pl, f_theta, bound_acc, count, f_state, eps_z, param_dict, fun_
 
 
 def get_train_loop_fun(param_dict, fun_dict):
-    # function wrapper to assign the dicts. return value can be looped with tf.while_loop
+    """ function wrapper to assign the dicts. return value can be looped with tf.while_loop """
     def train_loop_fun(x_pl, hid_pl, err_acc, count, f_state, eps_z, debug_tensors):
         return train_loop(x_pl, hid_pl, err_acc, count, f_state, eps_z, param_dict, fun_dict, debug_tensors)
     return train_loop_fun
 
 
 def get_train_stop_fun(num_iter):
+    """ sequence length counter needed for while loop """
     def train_stop_fun(*args):
         count = args[3]
         return tf.less(count, num_iter)
@@ -184,6 +200,7 @@ def get_train_stop_fun(num_iter):
 
 
 def generation(hid_pl, f_state, eps_z, eps_x, pd, fd):
+    """ builds generative model for one time step """
     params_prior = fd['phi_prior'](hid_pl)
     z = sample(params_prior, eps_z, 'gauss')
     phi_z = fd['phi_z'](z)
@@ -197,6 +214,9 @@ def generation(hid_pl, f_state, eps_z, eps_x, pd, fd):
 
 
 def gen_loop(x_pl, hid_pl, count, f_state, eps_z, eps_x, pd, fun_dict):
+    """
+    executes one timestep of generation and accumulates results, writing to x_pl. passes results for next timestep
+    """
     eps_z_t = tf.squeeze(tf.slice(eps_z, [tf.to_int32(count), 0, 0], [1, -1, -1]), axis=[0])
     eps_x_t = tf.squeeze(tf.slice(eps_x, [tf.to_int32(count), 0, 0], [1, -1, -1]), axis=[0])
 
@@ -213,35 +233,15 @@ def gen_loop(x_pl, hid_pl, count, f_state, eps_z, eps_x, pd, fun_dict):
 
 
 def get_gen_loop_fun(param_dict, fun_dict):
+    """ function wrapper to assign the dicts. return value can be looped with tf.while_loop """
     def f(x_pl, hid_pl, count, f_state, eps_z, eps_x):
         return gen_loop(x_pl, hid_pl, count, f_state, eps_z, eps_x, param_dict, fun_dict)
     return f
 
 
 def get_gen_stop_fun(num_iter):
+    """ sequence length counter needed for while loop """
     def gen_stop_fun(*args):
         count = args[2]
         return tf.less(count, num_iter)
     return gen_stop_fun
-
-    # grads = [tf.clip_by_value(k, -1000, 1000) for k in tf.gradients(err_acc, tvars)]
-    # grads, _ = tf.clip_by_global_norm(tf.gradients(err_acc, tvars), 1)
-    # grads = [tf.clip_by_norm(k, 1) for k in tf.gradients(err_acc, tvars)]
-
-    # DEBUG
-    # all_grads = tf.gradients(err_acc, tvars)
-    # abs_grads = [tf.abs(k) for k in all_grads if k is not None]
-    # max_grads = [tf.reduce_max(k) for k in abs_grads]
-    # mean_grads = [tf.reduce_mean(k) for k in abs_grads]
-    # grad_print = tf.Print(grads[0], max_grads, summarize=1, message='max_g ')
-    # grad_print = tf.Print(grad_print, mean_grads, summarize=1, message='mean_g ')
-    #
-    # abs_grads = [tf.abs(k) for k in grads if k is not None]
-    # max_grads = [tf.reduce_max(k) for k in abs_grads]
-    # mean_grads = [tf.reduce_mean(k) for k in abs_grads]
-    # grad_print = tf.Print(grad_print, max_grads, summarize=1, message='max_g_c ')
-    # grad_print = tf.Print(grad_print, mean_grads, summarize=1, message='mean_g_c ')
-
-# def naive_rec_err(mean_x, cov_x, x_target, k):  # for debugging purposes
-#     x_diff = x_target - mean_x
-#     return -tf.reduce_sum(x_diff * x_diff, axis=[1])

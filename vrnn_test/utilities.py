@@ -10,19 +10,15 @@ ACT_FUNCS = {'relu': tf.nn.relu,
 
 
 class NetGen:
-
+    """ Class for creating and storing network generator functions """
     def __init__(self):
         self.fd = {}                    # function dict stores generator functions under name
-        # self.vd = defaultdict(list)     # tensor dict stores list of associated variable tensors under function name
-        # self.cells = {}                 # stores rnn cells by name (mostly for initialization)
-        # self.states = {}                # stores rnn states by name
 
     def __str__(self):
         return str(self.fd.keys())
 
-    # adds net-gen function of certain type to the internal dict
-
     def add_net(self, params):
+        """ adds net-gen function of certain type to the internal dict """
         name = params['name']
 
         if params['nn_type'] == 'general_mlp':
@@ -32,9 +28,6 @@ class NetGen:
             self.fd[name] = f
 
         if params['nn_type'] == 'simple_lstm':
-            # given the odd way rnns are currently handled in tensorflow,
-            # this function just creates an lstm cell which must then be called inside the loop
-            # with the last state
             self.fd[name] = simple_lstm(params, name)
 
         if params['nn_type'] == 'general_lstm':
@@ -50,12 +43,11 @@ class NetGen:
             elif params['out2dist'] == 'gm_plus_bin':
                 self.fd[name] = out_to_gm_plus_binary(self.fd[name], params)
 
-    # concatenates several tensors into one input to existing nn of given name
     def weave_inputs(self, name):
+        """ concatenates several tensors into one input to existing nn of given name """
         f = self.fd[name]
 
         def g(*args):
-            # maybe make dimension (1) flexible later
             in_pl = tf.concat(list(args), axis=1, name=name + "_joint_inputs")
             return f(in_pl)
 
@@ -63,6 +55,7 @@ class NetGen:
 
 
 def general_mlp(input_tensor, params):
+    """ build a generic MLP as specified in params """
     name = params['name']
     layers = params['layers']
     init_bias = 0
@@ -71,7 +64,6 @@ def general_mlp(input_tensor, params):
 
     last = input_tensor
     with tf.name_scope(name):
-        # stack layers
         for idx in range(1, len(layers)):
 
             weights = tf.get_variable(name=(name + '_w' + str(idx)),
@@ -92,6 +84,7 @@ def general_mlp(input_tensor, params):
 
 
 def simple_lstm(params, name):
+    """ build a one layer lstm"""
     n_units = params['layers']
     with tf.name_scope(name):
         cell = tf.contrib.rnn.BasicLSTMCell(n_units)
@@ -99,6 +92,7 @@ def simple_lstm(params, name):
 
 
 def general_lstm(params, name):
+    """ build an LSTM net as specified in params"""
     layers = params['layers']
     cells = []
     with tf.name_scope(name):
@@ -109,6 +103,7 @@ def general_lstm(params, name):
 
 
 def out_to_normal(net_fun, params):
+    """ adapt a net to output parameters of a decorrelated Gaussian distribution """
     d_dist = params['dist_dim']
     d_out = params['layers'][-1]
     name = params['name']
@@ -130,6 +125,7 @@ def out_to_normal(net_fun, params):
 
 
 def out_to_normal_plus_binary(net_fun, params):
+    """ adapt a net to output parameters of a decorrelated Gaussian distribution plus a single sigmoidal logit"""
     d_dist = params['dist_dim']
     d_out = params['layers'][-1]
     name = params['name']
@@ -155,6 +151,7 @@ def out_to_normal_plus_binary(net_fun, params):
 
 
 def out_to_gm(net_fun, params):
+    """ adapt a net to output parameters of a decorrelated Gaussian mixture distribution """
     d_dist = params['dist_dim']
     d_out = params['layers'][-1]
     num_modes = params['modes']
@@ -182,6 +179,7 @@ def out_to_gm(net_fun, params):
 
 
 def out_to_gm_plus_binary(net_fun, params):
+    """ adapt a net to output parameters of a decorrelated Gaussian mixture plus a single sigmoidal logit """
     d_dist = params['dist_dim']
     d_out = params['layers'][-1]
     num_modes = params['modes']
@@ -214,6 +212,8 @@ def out_to_gm_plus_binary(net_fun, params):
     return f
 
 
+# SOME BASIC UTILITY FUNCTIONS BELOW
+
 def running_idx(start=0):
     a = start
     while True:
@@ -222,7 +222,7 @@ def running_idx(start=0):
 
 
 def plot_img_mats(mat):
-    # plot l*m*n mats as l m by n gray-scale images
+    """ plot l*m*n mats as l m by n gray-scale images """
     n = mat.shape[0]
     cols = int(np.ceil(np.sqrt(n)))
     rows = int(np.ceil(n // cols))
@@ -242,27 +242,17 @@ def plot_img_mats(mat):
     plt.show()
 
 
-# def out_to_normal_split(net_fun, params):  # now old
-#     dims = params['layers'][-1] / 2
-#     name = params['name']
-#
-#     def f(in_pl):
-#         with tf.name_scope(name):
-#             net_out = net_fun(in_pl)
-#             out_m = tf.slice(net_out, [0, 0], [-1, dims])
-#             out_c = tf.slice(net_out, [0, dims], [-1, dims])
-#             mean_weights = tf.get_variable(name + '_m', initializer=tf.random_normal([dims, dims], mean=0))
-#             mean = tf.matmul(out_m, mean_weights)
-#             # mean = tf.Print(mean, [mean, out_m, mean_weights, out_c], message=name + ' m ')
-#             # mean = out_m
-#             cov_weights = tf.get_variable(name + '_c', initializer=tf.random_normal([dims, dims],
-#                                                                                     mean=0,
-#                                                                                     stddev=params['init_sig_var']))
-#             cov = tf.nn.softplus(tf.matmul(out_c, cov_weights))
-#             # cov = tf.exp(tf.matmul(out_c, cov_weights))
-#             # cov = tf.nn.softplus(out_c)
-#             # cov = tf.exp(out_c)
-#             # cov = tf.Print(cov, [cov], message=name + '_c ')
-#         return mean, cov
-#     return f
-#
+def count_params(param_dict, net_names):
+    """ compute rough estimate of number of params in a model based on its networks """
+    num_params = 0
+    nets = [param_dict[k] for k in net_names]
+    for net in nets:
+        l = net['layers']
+        for idx in range(1, len(l)):
+            num_params += (l[idx-1] + 1) * l[idx]
+        if 'out2dist' in net.keys():
+            # assume all gauss
+            d = net['dist_dim']
+            num_params += 2 * (l[-1] + 1) * d
+
+    print('Architecure with about ' + str(num_params) + ' parameters')

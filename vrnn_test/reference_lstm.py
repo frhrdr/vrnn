@@ -7,8 +7,9 @@ import os.path
 import time
 import pickle
 
-PARAMS = dict()
+# SIMPLE LSTM MODEL FOR PERFORMANCE COMPARISON
 
+PARAMS = dict()
 PARAMS['max_iter'] = 20000
 PARAMS['log_path'] = 'data/logs/ref_lstm_03/'
 PARAMS['log_freq'] = 500
@@ -45,21 +46,6 @@ PARAMS['out_mlp'] = {'name': 'out_mlp',
                      'init_sig_var': 0.01,
                      'init_sig_bias': 0.0,
                      'dist_dim': PARAMS['x_dim']}
-
-
-# compute num of params
-num_params = 0
-nets = [PARAMS[k] for k in ['in_mlp', 'lstm', 'out_mlp']]
-for net in nets:
-    l = net['layers']
-    for idx in range(1, len(l)):
-        num_params += (l[idx-1] + 1) * l[idx]
-    if 'out2dist' in net.keys():
-        # assume all gauss
-        d = net['dist_dim']
-        num_params += 2 * (l[-1] + 1) * d
-
-print('Architecure with about ' + str(num_params) + ' parameters')
 
 
 def lstm_inference(x_pl, state, fd):
@@ -182,39 +168,3 @@ def lstm_train(params):
 
 
 lstm_train(PARAMS)
-
-
-def lstm_read_then_gen(params_file, read_seq, ckpt_file=None, batch_size=1):
-    params = pickle.load(open(params_file, 'rb'))
-
-    netgen = NetGen()
-    nets = ['in_mlp', 'lstm', 'out_mlp']
-    for net in nets:
-        netgen.add_net(params[net])
-
-    with tf.Graph().as_default():
-        stop_fun = get_train_stop_fun(params['seq_length'] - 1)
-        loop_fun = get_lstm_loop_fun(params, netgen.fd)
-
-        in_pl = tf.placeholder(tf.float32, name='x_pl',
-                               shape=(params['seq_length'], params['batch_size'], params['x_dim']))
-        err_acc = tf.constant(0, dtype=tf.float32, name='diff_acc')
-        count = tf.constant(0, dtype=tf.float32, name='counter')
-        state = netgen.fd['lstm'].zero_state(params['batch_size'], tf.float32)
-        loop_vars = [in_pl, state, err_acc, count]
-
-        _ = loop_fun(*loop_vars)  # quick fix - need to init variables outside the loop
-
-        with tf.variable_scope(tf.get_variable_scope(), reuse=True):
-            loop_res = tf.while_loop(stop_fun, loop_fun, loop_vars)
-
-        state_final = loop_res[1]
-
-        with tf.Session() as sess:
-            feed = {in_pl: read_seq}
-            saver = tf.train.Saver()
-            saver.restore(sess, ckpt_file)
-            argin = list(state_final)
-            res = sess.run(argin, feed_dict=feed)
-
-        state = tuple([tf.contrib.rnn.LSTMStateTuple(tf.constant(k[0]), tf.constant(k[1])) for k in res])

@@ -20,10 +20,10 @@ PARAM_DICT['batch_size'] = 100
 PARAM_DICT['x_dim'] = 28
 PARAM_DICT['z_dim'] = 2
 PARAM_DICT['seq_length'] = 28
-PARAM_DICT['learning_rate'] = 0.0000003
+PARAM_DICT['learning_rate'] = 0.000003
 PARAM_DICT['max_iter'] = 20000
 PARAM_DICT['hid_state_size'] = 1500
-PARAM_DICT['masking'] = True
+PARAM_DICT['masking'] = False
 PARAM_DICT['mask_value'] = 500
 PARAM_DICT['kl_weight'] = 1.0
 
@@ -94,16 +94,3 @@ PARAM_DICT['f_theta'] = {'name': 'f_theta',
                          'layers': [PARAM_DICT['hid_state_size'], PARAM_DICT['hid_state_size']]}
 
 
-# compute num of params
-num_params = 0
-nets = [PARAM_DICT[k] for k in ['phi_x', 'phi_prior', 'phi_enc', 'phi_z', 'phi_dec', 'f_theta']]
-for net in nets:
-    l = net['layers']
-    for idx in range(1, len(l)):
-        num_params += (l[idx-1] + 1) * l[idx]
-    if 'out2dist' in net.keys():
-        # assume all gauss
-        d = net['dist_dim']
-        num_params += 2 * (l[-1] + 1) * d
-
-print('Architecure with about ' + str(num_params) + ' parameters')
