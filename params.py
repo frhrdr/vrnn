@@ -41,11 +41,11 @@ if 'bin' in PARAM_DICT['model']:
     PARAM_DICT['in_dim'] += 1
 
 # assign shared variables
-phi_x_out = 300  # 200
-phi_z_out = 300  # 200
-phi_enc_out = 300  # 200
-phi_prior_out = 300  # 200
-phi_dec_out = 300  # 200
+phi_x_out = 300
+phi_z_out = 300
+phi_enc_out = 300
+phi_prior_out = 300
+phi_dec_out = 300
 
 # specify each net
 PARAM_DICT['phi_x'] = {'name': 'phi_x',

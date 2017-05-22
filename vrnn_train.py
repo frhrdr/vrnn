@@ -2,10 +2,8 @@ from tensorflow.examples.tutorials.mnist import input_data
 import os.path
 import pickle
 import time
-
 import numpy as np
 import tensorflow as tf
-
 import vrnn_model as model
 from utilities import NetGen
 

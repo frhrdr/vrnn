@@ -1,7 +1,7 @@
-import tensorflow as tf
 import matplotlib
 matplotlib.use('qt5agg', warn=False, force=True)
 import matplotlib.pyplot as plt
+import tensorflow as tf
 import numpy as np
 
 ACT_FUNCS = {'relu': tf.nn.relu,
